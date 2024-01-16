@@ -12,20 +12,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This tutorial will introduce you to the standard data processing pipeline used in JiangLab. In short, the pipeline has five main components: 
 
-1. Nucleus channel filter to filter out "fake" cells with minimal nucleus signal
-2. Nucleus channel normalization to decrease the core-to-core variance if any
+1. Nuclear channel filter to filter out "fake" cells with minimal nucleus signal
+2. Nuclear channel normalization to decrease the core-to-core variance if any
 3. Arcsinh transformation to make the data less skewed
 4. Trim off extreme/outliers at the lower and upper end of marker distribution
 5. Transform the data to a range of [0,1] by quantile/percentile
 
 In the following sections, these steps will be explored in detail. 
 
-## Required libraries
+## Required Libraries
 
 ```{r, message=FALSE}
 
 library(tidyverse)
 library(matrixStats)
+library(ggcorrplot)
+#library(isotree)
 
 ```
 
@@ -57,11 +59,733 @@ colnames(df[,5:50])
 
 Here, let's examine their distribution before the data is processed
 
-```{r}
+```{r, cache=TRUE}
 
+df %>% 
+  select(pointNum, all_of(marker_names)[1:6]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, echo=FALSE, cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[7:12]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+```
+
+```{r, echo=FALSE,cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[13:18]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
 
 
 ```
 
+```{r, echo=FALSE,cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[19:24]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
 
 
+```
+
+```{r,echo=FALSE,cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[25:30]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[31:36]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[37:42]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE}
+
+df %>% 
+  select(pointNum, all_of(marker_names)[43:46]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+
+```
+
+As we can see, the distributions for all those markers are very right skewed. Most of the signals are concentrated at the lower end. This is usually the case for our data, i.e., similar for CODEX data.
+
+We knew that SLP-76, pSLP-76, dsDNA, anti-H2AX (pS139), and CD123 were not working. Therefore, we drop those markers from the dataframe here.
+
+```{r}
+
+df <- df %>% 
+  dplyr::select(-`SLP-76`,
+         -`pSLP-76`,
+         -dsDNA,
+         -`anti-H2AX (pS139)`,
+         -CD123)
+
+marker_names <- colnames(df[,5:45])
+
+```
+
+## Nuclear Channel Filter
+
+Since our dataframe is generated based on segmentation masks, we might have a lot of "cells", which are truely segmentation artifacts, in the dataframe that have none to minimal nuclear marker signal. We want to remove those artifacts first. The first thing to do is naturally to quantify how many observations have 0 nuclear marker signal and filter them out.
+
+```{r}
+
+# Quantify how many observations have 0 nuclear marker singal
+
+df %>% 
+  filter(`Histone H3` == 0) %>% 
+  dplyr::count()
+
+# Filter those cells out
+
+df <- df %>%
+  filter(`Histone H3` > 0)
+
+```
+
+Then, we will need to check the distribution of the nuclear channel, Histone H3 in this case, to see if there are any cells with suspiciously low nuclear marker signals. Upon examining the distribution, one thing to note is that we can see the nuclear marker singal for all FOVs align pretty well. That's a good thing and that's what you should be seeing in most cases, if the experiment is done well. Of course, there might be some biological factors that can make some FOV's nuclear signal stronger or weaker. When you see abnormality, always check the raw image data first before you decided if you want to throw out the data or not.  
+
+```{r}
+
+df %>% 
+  select(pointNum, `Histone H3`) %>% 
+  ggplot(aes(x = `Histone H3`, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.5) + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+```
+
+```{r}
+
+df %>% 
+  select(pointNum, `Histone H3`) %>% 
+  filter(pointNum <= 40) %>% 
+  ggplot(aes(x = as.factor(pointNum), y = `Histone H3`, fill = as.factor(pointNum))) + 
+  geom_boxplot(outlier.alpha = 0.3) + 
+  theme_bw() + 
+  theme(legend.position = 'none') + 
+  labs(x = 'FOV')
+  
+
+```
+```{r}
+
+df %>% 
+  select(pointNum, `Histone H3`) %>% 
+  filter(pointNum > 40) %>% 
+  ggplot(aes(x = as.factor(pointNum), y = `Histone H3`, fill = as.factor(pointNum))) + 
+  geom_boxplot(outlier.alpha = 0.3) + 
+  theme_bw() + 
+  theme(legend.position = 'none') + 
+  labs(x = 'FOV')
+  
+
+```
+
+From the boxplot, we can see that most outliers are cells with very bright nuclear marker signal and fewer outliers are those cells with nuclear marker signal below $Q_{1} - 1.5IQR$, where $Q_{1}$ is the first quantile or 25th percentile and $IQR$ is the inter-quantile range, $Q_{3} - Q_{1}$, the diffrence between the 75th percentile and the 25th percentile. Let's filter out cells that have nuclear marker signal less than $Q_{1} - 1.5IQR$. Those outliers should be examined more carefully in combination with other markers because 
+
+* It can be that they just have high/low nuclear marker signal but other markers stained normally.
+* It can be that they have extremely high/low marker signal overall.
+
+Only in the 2nd case should we consider removing those cells. Since the marker intensities are not yet normalized and it may not be comparable across different FOVs, we will use DBSCAN within each FOV to detect potential outlier cells within each FOV. However, for the purpose of this tutorial, since we only have 1809 at the lower end, which is only about $0.05\%$ of the data. We will just drop those cells. And the upper end outliers is generally of less concern. More robust outlier detection method will be updated later.
+
+
+```{r}
+
+df %>% 
+  group_by(pointNum) %>% 
+  mutate(min = quantile(`Histone H3`, 0.25) - 1.5 * IQR(`Histone H3`)) %>% 
+  filter(`Histone H3` < min) %>% 
+  ungroup() %>% 
+  dplyr::count()
+
+df <- df %>% 
+  group_by(pointNum) %>% 
+  mutate(min = quantile(`Histone H3`, 0.25) - 1.5 * IQR(`Histone H3`)) %>% 
+  filter(`Histone H3` >= min) %>% 
+  ungroup()
+  
+
+```
+
+## Median Nuclear Marker Signal Normalization
+
+This step is to correct the core-to-core variation of markers to make the same marker more comparable across different FOVs. As you can see from the correlation plot below, the Histone H3 signal is positively correlated with most markers, which means that if an FOV has higher Histone H3 signal, the signal of other markers of that FOV would also tend to be higher.  
+
+```{r,message=FALSE}
+
+mean_marker_df <- df %>% 
+  dplyr::select(pointNum, all_of(marker_names)) %>% 
+  pivot_longer(cols = -pointNum, names_to = 'marker', values_to = 'value') %>% 
+  group_by(pointNum, marker) %>% 
+  summarise(marker_mean = mean(value)) %>% 
+  ungroup() %>% 
+  pivot_wider(id_cols = pointNum, names_from = 'marker', values_from = 'marker_mean')
+
+ggcorrplot(as.matrix(cor(mean_marker_df[,2:42], method = 'spearman')['Histone H3', ])) + 
+  theme(axis.text.x = element_text(angle = 90, size = 10),
+        axis.text.y = element_blank())
+```
+
+While biologically, nuclear marker signal for all cells should be similar. Therefore, within each FOV, we devide each marker by the median nuclear signal to make the signal intensity between different FOVs more comparable
+
+```{r}
+
+df_norm <- df
+
+for (i in 1:length(unique(df$pointNum))){
+  row_index <- which(df$pointNum == unique(df$pointNum)[i])
+  df_norm[row_index, 5:45] <- df[row_index, 5:45]/median(df$`Histone H3`[row_index])
+}
+
+```
+
+Let's look at the distribution of all the markers after the normalization. 
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[1:6]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[7:12]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[13:18]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[19:24]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[25:30]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[31:36]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_norm %>% 
+  select(pointNum, all_of(marker_names)[37:41]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+## Arcsinh (Inverse Hyperbolic Sine) Transformation
+
+This step will make the distribution of the markers less skewed and create a bimodal distribution whose peaks and neighboring masses can be easily interpreted as the positive and negative cells for that marker. We will show CD3, CD4, CD8, and CD20 here as an example.
+
+```{r, cache=TRUE}
+
+markers_to_trans <- c('CD3')
+
+df_norm %>%
+  dplyr::select(pointNum, all_of(markers_to_trans)) %>% 
+  mutate(
+    across(
+      all_of(markers_to_trans),
+      list(
+        "1000" = ~ asinh(.x / 1000),
+        "100" = ~ asinh(.x / 100),
+        "10" = ~ asinh(.x / 10),
+        "0.1" = ~ asinh(.x / 0.1),
+        "0.01" = ~ asinh(.x / 0.01),
+        "0.001" = ~ asinh(.x / 0.001)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  ) %>% 
+  pivot_longer(cols = -c('pointNum'), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, color = as.factor(pointNum))) +
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+```
+
+```{r, cache=TRUE}
+
+markers_to_trans <- c('CD4')
+
+df_norm %>%
+  dplyr::select(pointNum, all_of(markers_to_trans)) %>% 
+  mutate(
+    across(
+      all_of(markers_to_trans),
+      list(
+        "1000" = ~ asinh(.x / 1000),
+        "100" = ~ asinh(.x / 100),
+        "10" = ~ asinh(.x / 10),
+        "0.1" = ~ asinh(.x / 0.1),
+        "0.01" = ~ asinh(.x / 0.01),
+        "0.001" = ~ asinh(.x / 0.001)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  ) %>% 
+  pivot_longer(cols = -c('pointNum'), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, color = as.factor(pointNum))) +
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+```
+
+
+```{r, cache=TRUE}
+
+markers_to_trans <- c('CD8')
+
+df_norm %>%
+  dplyr::select(pointNum, all_of(markers_to_trans)) %>% 
+  mutate(
+    across(
+      all_of(markers_to_trans),
+      list(
+        "1000" = ~ asinh(.x / 1000),
+        "100" = ~ asinh(.x / 100),
+        "10" = ~ asinh(.x / 10),
+        "0.1" = ~ asinh(.x / 0.1),
+        "0.01" = ~ asinh(.x / 0.01),
+        "0.001" = ~ asinh(.x / 0.001)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  ) %>% 
+  pivot_longer(cols = -c('pointNum'), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, color = as.factor(pointNum))) +
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+```
+
+```{r, cache=TRUE}
+
+markers_to_trans <- c('CD20')
+
+df_norm %>%
+  dplyr::select(pointNum, all_of(markers_to_trans)) %>% 
+  mutate(
+    across(
+      all_of(markers_to_trans),
+      list(
+        "1000" = ~ asinh(.x / 1000),
+        "100" = ~ asinh(.x / 100),
+        "10" = ~ asinh(.x / 10),
+        "0.1" = ~ asinh(.x / 0.1),
+        "0.01" = ~ asinh(.x / 0.01),
+        "0.001" = ~ asinh(.x / 0.001)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  ) %>% 
+  pivot_longer(cols = -c('pointNum'), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, color = as.factor(pointNum))) +
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+
+```
+
+For this dataframe, the cofactor of 0.001 seems to be optimal. Hence, we will proceed with the arcsinh transformed data with cofactor 0.001.
+
+```{r}
+
+df_arcsinh <- df_norm %>% 
+  mutate(across(all_of(marker_names), ~asinh(.x/0.001)))
+
+```
+
+
+## Percentile Normalization
+
+This step will transform the data to have range $\left[0,1\right]$ based on a pair of chosen percentiles $\left(P_{low}, P_{high}\right)$.
+\[
+X_{norm} = \frac{X - X_{P_{low}}}{X_{P_{high}} - X_{P_{low}}}
+\]
+
+
+```{r, warning=FALSE, cache=TRUE}
+
+df_arcsinh %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+As for tunning the lower and upper bound, unfortunately, the current way is to set some initial values to start with and compare the signal image to the raw image, with your adjustments to show only the true signals. If the two corresponds very well, you are done. Otherwise, you will know if you need to allow for higher signals or you need to cut out more lower end signals by looking at them. The following are some examples to show you how the lower and upper bound can affect the signal image that the computer will be "seeing". Sometimes, different $\left(P_{low}, P_{high}\right)$ need to be set for different markers. Therefore, you should check all the markers that you care about before you proceed to clustering and all the downstream analysis. 
+ 
+### [0.001, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.001, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.1, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.1, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.3, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.3, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.4, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.4, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.5, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.5, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.6, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.6, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.7, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.7, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
+
+### [0.8, 0.999]
+
+```{r, cache=TRUE,warning=FALSE}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.8, 0.999))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+df_trans %>% 
+  filter(pointNum == 4) %>% 
+  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
+  geom_point(alpha = 1) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank())
+
+```
