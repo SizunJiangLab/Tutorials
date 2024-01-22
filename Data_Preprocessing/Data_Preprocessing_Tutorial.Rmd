@@ -680,7 +680,7 @@ X_{norm} = \frac{X - X_{P_{low}}}{X_{P_{high}} - X_{P_{low}}}
 
 df_arcsinh %>% 
   filter(pointNum == 4) %>% 
-  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
+  mutate(CD20 = ifelse(CD3 == 0, NA, CD3)) %>% 
   ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
   geom_point(alpha = 1) + 
   scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
