@@ -641,7 +641,7 @@ df_trans %>%
 
 ```{r, cache=TRUE, echo=FALSE}
 
-df_norm %>% 
+df_trans %>% 
   select(pointNum, all_of(marker_names)[31:36]) %>% 
   # transform the dataframe longer for plotting
   pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
@@ -667,6 +667,292 @@ df_trans %>%
   
 ```
 
+Let's try some other lower and upper bound and see the effects. 
+
+### [0.01, 0.99]
+
+```{r}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.01, 0.99))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[1:6]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[7:12]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[13:18]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[19:24]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[25:30]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[31:36]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[37:41]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+### [0.1, 0.9]
+
+```{r}
+
+df_trans <- df_arcsinh
+
+rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.1, 0.9))
+
+expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+expr[expr < 0] <- 0
+
+expr[expr > 1] <- 1
+
+df_trans[,5:45] <- expr
+
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[1:6]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[7:12]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[13:18]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[19:24]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[25:30]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[31:36]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+```{r, cache=TRUE, echo=FALSE}
+
+df_trans %>% 
+  select(pointNum, all_of(marker_names)[37:41]) %>% 
+  # transform the dataframe longer for plotting
+  pivot_longer(cols = -c(pointNum), names_to = 'marker', values_to = 'value') %>% 
+  ggplot(aes(x = value, fill = as.factor(pointNum))) + 
+  geom_histogram(bins = 100, alpha = 0.3) + 
+  facet_wrap(~marker, ncol = 3, nrow = 2, scales = 'free') + 
+  theme_bw() + 
+  theme(legend.position = 'none')
+  
+```
+
+[0.01, 0.99] seems to be good. Here we will plot out the actual signal pattern to see if it matches well to the actual image.
+
+```{r, evaluate=FALSE}
+
+for (i in unique(df_trans$pointNum)){
+  # make output directory if it doesn't exist already
+  path <- file.path('QC_plots', as.character(i))
+  if (!file.exists(path)){
+    dir.create(path)
+  }
+  for (j in marker_names){
+    
+    print(paste0('Working on ', i, ', ', j))
+    
+    df <- df_trans %>% 
+      filter(pointNum == i) %>% 
+      mutate(!!j := ifelse(!!sym(j) == 0, NA, !!sym(j)))
+    
+    #print(summary(df[j]))
+    
+    p <- df %>%
+      ggplot(aes(x = X_cent, y = -Y_cent, color = !!sym(j))) +
+      geom_point(alpha = 0.7) +
+      scale_color_gradient(low = 'white', high = 'red', na.value = NA) +
+      theme_bw() + 
+      theme(panel.background = element_blank(),
+            panel.border = element_blank(),
+            panel.grid = element_blank(),
+            legend.position = 'none',
+            axis.ticks = element_blank(),
+            axis.text = element_blank(),
+            axis.title = element_blank())
+
+    ggsave(file.path('QC_plots', as.character(i), paste0(j, '.png')), p)
+  }
+}
+
+```
+
+```{r}
+
+df_trans %>% 
+  filter(pointNum == 3) %>% 
+  mutate(CD45 = ifelse(Lag3 == 0, NA, CD45)) %>% 
+  ggplot(aes(x = X_cent, y = Y_cent, color = CD45)) + 
+  geom_point(alpha = 0.7) + 
+  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
+  theme_bw()
+
+```
+
+
 
 ## Percentile Normalization
 
@@ -691,34 +977,7 @@ df_arcsinh %>%
 ```
 
 As for tunning the lower and upper bound for difficult markers, unfortunately, the current way is to set some initial values to start with and compare the signal image to the raw image, with your adjustments to show only the true signals. If the two corresponds very well, you are done. Otherwise, you will know if you need to allow for higher signals or you need to cut out more lower end signals by looking at them. The following are some examples to show you how the lower and upper bound can affect the signal image that the computer will be "seeing". Sometimes, different $\left(P_{low}, P_{high}\right)$ need to be set for different markers. Therefore, you should check all the markers that you care about before you proceed to clustering and all the downstream analysis. 
- 
-### [0.001, 0.999]
 
-```{r, cache=TRUE,warning=FALSE}
-
-df_trans <- df_arcsinh
-
-rng <- colQuantiles(as.matrix(df_arcsinh[,5:45]), probs = c(0.001, 0.999))
-
-expr <- t((t(as.matrix(df_arcsinh[,5:45]))-rng[,1]) / (rng[,2]-rng[,1]))
-
-expr[expr < 0] <- 0
-
-expr[expr > 1] <- 1
-
-df_trans[,5:45] <- expr
-
-df_trans %>% 
-  filter(pointNum == 4) %>% 
-  mutate(CD3 = ifelse(CD3 == 0, NA, CD3)) %>% 
-  ggplot(aes(x = X_cent, y = Y_cent, color = CD3)) + 
-  geom_point(alpha = 1) + 
-  scale_color_gradient(low = 'white', high = 'red', na.value = NA) + 
-  theme_bw() + 
-  theme(panel.grid = element_blank(),
-        panel.border = element_blank())
-
-```
 
 ### [0.1, 0.999]
 
