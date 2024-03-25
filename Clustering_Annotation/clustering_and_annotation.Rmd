@@ -1,0 +1,194 @@
+---
+title: "Clustering and Annotation"
+author: "Huaying Qiu"
+date: "2024-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this tutorial, we will go through how to cluster and annotation single cell proteomics data, using Phenograph. Here, I will use data from our INDEPTH study as an example. Some details of the code may need to be changed for application to data from other projects, but the idea is easily transferable. 
+
+## Library
+
+Here are the libraries needed:
+
+  * `tidyverse` contains functions we need to clean and manipulate our dataframe.
+  * `matrixStats` contains functions we need to transform our protein marker intensity to $[0,1]$.
+  * `Rphenoannoy` contains functions to run Phenograph.
+  * `ComplexHeatmap` contains functions we need to plot the marker enrichment heatmap for clusters.
+  * `Rcpp` contains some C++ functions that Phenograph needs.
+  
+
+```{r, message=FALSE}
+
+library(tidyverse)
+library(matrixStats)
+library(Rphenoannoy)
+library(ComplexHeatmap)
+library(Rcpp)
+
+```
+
+## Load data
+
+Here we will load our data and take a look at its summary statistics.
+
+```{r, message=FALSE}
+
+df <- read_csv('~/INDEPTH/run_031124/extracted_info/L24_dataScaleSize.csv')
+
+source('./util.R')
+
+summary(df)
+
+```
+
+## Transform data
+
+Next, we will transform all markers to be within the range of $[0,1]$.
+
+```{r}
+
+# create a new dataframe
+df_trans <- df
+
+# getting the 0 and 99.9 percentile of each marker
+rng <- colQuantiles(as.matrix(df[,5:17]), probs = c(0, 0.999))
+
+# quantile normalization 
+expr <- t((t(as.matrix(df[,5:17]))-rng[,1]) / (rng[,2]-rng[,1]))
+
+# truncate lower end at 0
+expr[expr < 0] <- 0
+
+# truncate upper end at 1
+expr[expr > 1] <- 1
+
+# overwrite the markers with transformed markers
+df_trans[,5:17] <- expr
+
+```
+
+Now all markers are within the range of $[0,1]$
+
+```{r}
+
+summary(df_trans[,5:17])
+
+```
+
+## Clustering
+
+Now, we can start to cluster our data. Always set a random seed to make sure that our results are reproducible. Time needed for clustering is dependent on the size of your data and the $k$ you set. For demostration purposes, we will just randomly sample 10000 rows from the full dataset and the clusters will be randomly annotated.
+
+```{r, message=TRUE}
+
+# Since CD4 is not really working in this imaging run, we will not use it for clustering.
+# DAPI is usually not used for clustering either.
+
+df_trans_filter <- df_trans %>% 
+  dplyr::select(cellLabel, 5:17) %>% 
+  dplyr::select(-CD4, -DAPI) %>% 
+  sample_n(10000)
+
+# Cluster
+
+cluster_result <- to_cluster(df_trans_filter, 'cellLabel', colnames(df_trans_filter[,2:12]), 45, 123, z = FALSE)
+
+```
+
+Here is a summary of the dataset with the cluster column. 
+
+```{r}
+
+summary(cluster_result)
+
+```
+
+### Write results for view in mantis
+
+Now that we have the clusters and we have matched them to the cell labels, we can output a dataset to be read in [Mantis-Viewer](https://github.com/CANDELbio/mantis-viewer) for visual inspection.
+
+```{r}
+
+mantis_df <- cluster_result %>%
+  dplyr::select(cellLabel, pg_cluster) %>% 
+  mutate(core_name = rep('core1', nrow(df_trans_filter))) %>% 
+  dplyr::select(core_name, cellLabel, pg_cluster)
+
+head(mantis_df)
+
+#write_csv(mantis_df, 'path', headers = FALSE)
+
+```
+
+### Sub-cluster
+
+Sub-clustering strategy:
+
+1. Set aside clusters that you know the cell type already. Save into a dataframe
+2. Split the rest of data into different sub-clustering tasks.
+3. Cluster each of those sub-dataframe.
+4. Annotate.
+5. Join the data back with full join.
+
+```{r}
+
+annotated_cells <- cluster_result %>% 
+  dplyr::filter(pg_cluster %in% c(1:10))
+
+mixture1 <- cluster_result %>% 
+  dplyr::filter(pg_cluster %in% c(11:15))
+
+mixture2 <- cluster_result %>% 
+  dplyr::filter(pg_cluster %in% c(16:20))
+
+
+```
+
+Here we will sub-cluster mixture1 as an example. 
+
+```{r}
+
+sub_cluster_result <- to_cluster(mixture1, 'cellLabel', c('Pax5', 'CD163', 'CD68'), 45, 123, z = FALSE)
+
+```
+
+And we can again write it into a csv for view in Mantis-Viewer. 
+
+```{r}
+
+mantis_df <- sub_cluster_result %>%
+  dplyr::select(cellLabel, pg_cluster) %>% 
+  mutate(core_name = rep('core1', nrow(sub_cluster_result))) %>% 
+  dplyr::select(core_name, cellLabel, pg_cluster)
+
+head(mantis_df)
+
+#write_csv(mantis_df, 'path', headers = FALSE)
+
+```
+
+If the resulting cluster is clear, we can assign annotations to each cluster. 
+
+```{r}
+
+mixture1_annotation <- sub_cluster_result %>% 
+  mutate(Annotation = case_when(pg_cluster %in% c(1:5, 7:15, 17:19) ~ 'M1',
+                                pg_cluster == 6 ~ 'Other',
+                                pg_cluster == 16 ~ 'BCL6- B Cell'))
+
+```
+
+The above procedure is iteratively repeated for each mixture until a satisfactory annotation is achieved. At the end, you will just need to `dplyr::full_join` each of your annoated dataframe together to get the full annotation. Note that each of the dataframe generated in each sub-clustering run should be mutually exclusive, i.e., cell 1 can only be in one of your annotated dataframe. 
+
+
+
+
+
+
