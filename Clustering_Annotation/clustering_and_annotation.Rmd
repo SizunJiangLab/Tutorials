@@ -86,7 +86,7 @@ summary(df_trans[,5:17])
 
 Now, we can start to cluster our data. Always set a random seed to make sure that our results are reproducible. Time needed for clustering is dependent on the size of your data and the $k$ you set. For demostration purposes, we will just randomly sample 10000 rows from the full dataset and the clusters will be randomly annotated.
 
-```{r, message=TRUE}
+```{r, message=TRUE, warning=FALSE}
 
 # Since CD4 is not really working in this imaging run, we will not use it for clustering.
 # DAPI is usually not used for clustering either.
@@ -153,7 +153,7 @@ mixture2 <- cluster_result %>%
 
 Here we will sub-cluster mixture1 as an example. 
 
-```{r}
+```{r, warning=FALSE}
 
 sub_cluster_result <- to_cluster(mixture1, 'cellLabel', c('Pax5', 'CD163', 'CD68'), 45, 123, z = FALSE)
 
