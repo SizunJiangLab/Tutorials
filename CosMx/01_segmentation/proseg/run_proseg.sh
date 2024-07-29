@@ -18,7 +18,7 @@ stitch_cosmx=$(dirname $stitch_cosmx)/stitch-cosmx_modified.jl
 # find the parent directory of RunSummary and AnalysisResults folders
 path_rawfile=$(dirname $(find $dir_rawfile -name RunSummary -type d -print -quit))
 
-mkdir $dir_output
+mkdir -p $dir_output
 cd $dir_output
 julia $stitch_cosmx $path_rawfile transcripts.csv.gz
 proseg --cosmx-micron --voxel-layers 5 transcripts.csv.gz

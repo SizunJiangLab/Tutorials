@@ -16,7 +16,7 @@ https://github.com/dcjones/proseg
 
 ```sh
 wd=/mnt/nfs/home/wenruiwu/Projects/proseg
-mkdir $wd
+mkdir -p $wd
 ```
 
 ## 1. Rust and Cargo
@@ -102,7 +102,7 @@ dir_output=/mnt/nfs/home/wenruiwu/Projects/proseg/output/TMA_542
 `--voxel-layers 5`: To use 5 layers of voxels on the z-axis. Essentially how 3D the segmentation should be. (The thickness of our slides for CosMx is 5 μm. If we separate the z-axis into 5 layer, the length of voxel on z-axis is 1 μm. By default, the length of voxel on x-axis and y-axis is 1 μm. So the volume of each voxel is 1 μm<sup>3</sup>.) 
 
 ```sh
-mkdir $dir_output
+mkdir -p $dir_output
 cd $dir_output
 julia $stitch_cosmx $dir_rawfile transcripts.csv.gz
 proseg --cosmx-micron --voxel-layers 5 transcripts.csv.gz
