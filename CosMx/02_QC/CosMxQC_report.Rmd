@@ -1,0 +1,684 @@
+---
+title: "Quality report for CosMx"
+date: "`r Sys.Date()`"
+author: "JiangLab"
+output: 
+  rmdformats::downcute:
+params: 
+  parameter1: "/bmbl_data/yuzhou/collaborative/Sizun_lab/Protocol_CosMX/CosMXQC/Data/BPC23NE_HTMA541_section9_3ugml_1"
+  parameter2: "/bmbl_data/yuzhou/collaborative/Sizun_lab/Protocol_CosMX/CosMXQC/Data/BPC23NE_HTMA541_section9_3ugml_2"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css, echo = FALSE}
+h1, h2, h3 {
+  text-align: center;
+}
+p {
+  font-size: 16px;
+}
+#toc > ul {
+  margin-left: 5px;
+  padding-left: 0;
+}
+#toc > ul li ul li {
+  list-style: disc;
+  max-height: none; 
+  overflow: visible; 
+  transition: none; 
+  color: grey; 
+}
+#toc > ul li.active ul li  {
+  max-height: none;
+  transition: none;
+  color: grey; 
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.width = 8, fig.height = 4, dpi = 120)
+```
+
+```{r FindFillName}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(stringr)
+library(purrr)
+library(sf)
+library(patchwork)
+source(here::here("functions.R"))
+
+# A_input_file = params$parameter1
+# B_input_file = params$parameter2
+
+
+path_flat_files <- c(
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section04_v132/AtoMx/flatFiles/HL_DLBCL_TMA1_BOSTON_1ug/", 
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section06_v132/AtoMx/flatFiles/HL_DLBCL_TMA1_BOSTON_2ug/"
+)
+path_logs_files <- c(
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section04_v132/AtoMx/RawFiles/HL_DLBCL_TMA1_BOSTON_1ug/Logs/", 
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section06_v132/AtoMx/RawFiles/HL_DLBCL_TMA1_BOSTON_2ug/Logs/"
+)
+
+list_path_all_files <- map2(
+  path_flat_files, 
+  path_logs_files, 
+  ~ find_all_files(path_flat_files = .x, path_logs_files = .y)
+)
+
+list_combined_data <- map(list_path_all_files, ~ load_all_files(.x), .progress = TRUE)
+
+
+# Parameters
+all_fov <- map(list_combined_data, ~ {unique(c(.x$metadata_sub$fov, .x$tx_sub$fov))})
+nchar_fov <- all_fov %>% unlist() %>% as.character() %>% nchar() %>% max()
+list_run_name <- list_combined_data %>% map(~ unique(.x$metadata_sub$Run_Tissue_name))
+list_all_cell <- list_combined_data %>% map(~ .x$metadata_sub %>% distinct(fov, cell))
+
+target <- colnames(list_combined_data[[1]]$exprMat_sub)
+target <- target[!target %in% c("fov", "cell_ID", "cell")]
+target_false <- target[grepl("SystemControl", target)]
+target_negative <- target[grepl("Negative", target)]
+target_real <- setdiff(target, c(target_false, target_negative))
+df_target_type <- bind_rows(
+  data.frame(target = target_real, target_type = "Gene"), 
+  data.frame(target = target_false, target_type = "SystemControl"), 
+  data.frame(target = target_negative, target_type = "Negative")
+) %>% 
+  mutate(across(target_type, ~ factor(.x, levels = c("Negative", "SystemControl", "Gene"))))
+```
+
+# CosMX introduction
+
+CosMx SMI is currently the only spatial platform enabling the quantification of 1000+ targets at subcellular resolution for maximum biological insight. The CosMx SMI in-situ chemistry is designed to enable high-plex and high-resolution with probes and fluorophores designed to reduce optical crowding limitations, allowing multiplexing probes to 1000 unique transcript species and beyond. In addition to high-plex, CosMx SMI also achieves high resolution. Target localization accuracy of ∼50 nm in the XY plane allows for targeting of \<1kb transcripts with no loss in performance.
+
+
+# Overview (per FOV)
+
+## Global-View of Entire Run {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_combined_data %>% 
+  map(~ .x %>% global_summarize_Fov() %>% GlobalViewTable_func())
+
+for (i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+## Profiling Position (FOV Index) {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_combined_data %>% 
+  map(~ .x %>% plt_fov_position())
+cat("\n\n### ", "Combined\n")
+print(plt_combined(list_output))
+for (i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+## Unique Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_combined_data %>% 
+  map(~ .x %>% plt_n_unique_Fov())
+fill_range <- get_pdata_range(list_output, "n", 1, vmin = 1, vmax = NULL) %>% log10()
+list_output <- list_output %>% 
+  map(
+    ~ .x + 
+      scale_fill_continuous(type = "viridis", limits = fill_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+
+# Transcripts of All (per FOV)
+```{r}
+list_n_percent_type <- list_combined_data %>% 
+  map(~ get_tx_n_percent_by_group_Fov(.x, group.by = "target_type"))
+list_mean_sd_type <- list_combined_data %>% 
+  map(~ get_tx_mean_sd_by_group_Target(.x, group.by = "target_type"))
+```
+
+## Count of transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ plt_n_by_group_Fov(.x))
+y_max <- list_n_percent_type %>% map(~ .x$N) %>% unlist() %>% max()
+y_range <- c(0, y_max)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Percentage of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ plt_percent_by_group_Fov(.x))
+y_range <- c(0, 100)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+ 
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output)) 
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Transcripts of Real Genes (per FOV)
+
+## Count of transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ .x %>% filter(group.by == "Gene") %>% plt_n_by_group_Fov())
+y_range <- get_pdata_range(list_output, "n", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Percentage of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ .x %>% filter(group.by == "Gene") %>% plt_percent_by_group_Fov())
+y_range <- get_pdata_range(list_output, "percent", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Mean and Standard Deviation of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_mean_sd_type %>% 
+  map(~ .x %>% filter(group.by == "Gene") %>% plt_mean_sd_by_group_Target())
+y_range <- get_pdata_range(list_output, "mean_sd", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Coefficient of Variation of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_mean_sd_type %>% 
+  map(~ .x %>% filter(group.by == "Gene") %>% plt_cv_by_group_Target())
+y_range <- get_pdata_range(list_output, "cv", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Transcripts of Negative Probes (per FOV)
+
+## Count of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ .x %>% filter(group.by == "Negative") %>% plt_n_by_group_Fov())
+y_range <- get_pdata_range(list_output, "n", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Percentage of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ .x %>% filter(group.by == "Negative") %>% plt_percent_by_group_Fov())
+y_range <- get_pdata_range(list_output, "percent", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+## Mean and Standard Deviation of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_mean_sd_type %>% 
+  map(~ .x %>% filter(group.by == "Negative") %>% plt_mean_sd_by_group_Target())
+y_range <- get_pdata_range(list_output, "mean_sd", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Coefficient of Variation of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_mean_sd_type %>% 
+  map(~ .x %>% filter(group.by == "Negative") %>% plt_cv_by_group_Target())
+y_range <- get_pdata_range(list_output, "cv", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Transcripts of False Codes (per FOV)
+
+## Count of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ .x %>% filter(group.by == "SystemControl") %>% plt_n_by_group_Fov())
+y_range <- get_pdata_range(list_output, "n", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Percentage of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_n_percent_type %>% 
+  map(~ .x %>% filter(group.by == "SystemControl") %>% plt_percent_by_group_Fov())
+y_range <- get_pdata_range(list_output, "percent", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+## Mean and Standard Deviation of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_mean_sd_type %>% 
+  map(~ .x %>% filter(group.by == "SystemControl") %>% plt_mean_sd_by_group_Target())
+y_range <- get_pdata_range(list_output, "mean_sd", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Coefficient of Variation of Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_mean_sd_type %>% 
+  map(~ .x %>% filter(group.by == "SystemControl") %>% plt_cv_by_group_Target())
+y_range <- get_pdata_range(list_output, "cv", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Overall Error Rates (per FOV)
+```{r}
+list_error_rate <- list_mean_sd_type %>% 
+  map(
+    ~ .x %>% 
+      pivot_wider(id_cols = fov, names_from = group.by, values_from = mean) %>% 
+      mutate(
+        across(c(Negative, SystemControl, Gene), ~ ifelse(is.na(.x), 0, .x)), 
+        experimental_error = Negative / Gene * 100, 
+        matching_error = SystemControl / Gene * 100
+      )
+  )
+```
+
+## Experimental Error (Mean Negative / Mean Real)  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_error_rate %>% 
+  map(~ .x %>% rename(n = experimental_error) %>% plt_n_by_group_Fov())
+y_range <- get_pdata_range(list_output, "n", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Experimental Error (%)")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Matching Error (Mean False / Mean Real)  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_error_rate %>% 
+  map(~ .x %>% rename(n = matching_error) %>% plt_n_by_group_Fov())
+y_range <- get_pdata_range(list_output, "n", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_y_continuous(limits = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Matching Error (%)")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+# Limit of Detection (LOD) for Negative Probes (per FOV)
+
+## 1 sigma
+
+### Unique Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+list_lod <- list_mean_sd_type %>% 
+    map(~ .x %>% mutate(cut = mean + 1 * sd) %>% filter(group.by == "Negative") %>% select(fov, cut))
+list_output <- list_combined_data %>% 
+  map(~ .x %>% plt_n_unique_Fov())
+fill_range <- get_pdata_range(list_output, "n", 1, vmin = 1, vmax = NULL) %>% log10()
+list_output <- map2(
+  list_output,
+  list_lod, 
+  ~ {
+    .x$data <- .x$data %>% left_join(.y, by = "fov") %>% mutate(n = floor(n - cut)) %>% filter(n > 0)
+    return(.x)
+  }
+)
+list_output <- list_output %>% 
+  map(
+    ~ .x + 
+      scale_fill_continuous(type = "viridis", limits = fill_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      scale_y_discrete(breaks = target)
+  )
+
+cat("\n\n#### ", "Combined\n")
+print(plt_combined(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n#### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+### Calls Above Negative Probe LOD {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- map2(
+  list_combined_data, 
+  list_lod, 
+  ~ plt_percent_above_lod(combine_data = .x, lod = .y)
+)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n#### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n#### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+## 2 sigma
+
+### Unique Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+list_lod <- list_mean_sd_type %>% 
+    map(~ .x %>% mutate(cut = mean + 2 * sd) %>% filter(group.by == "Negative") %>% select(fov, cut))
+list_output <- list_combined_data %>% 
+  map(~ .x %>% plt_n_unique_Fov())
+fill_range <- get_pdata_range(list_output, "n", 1, vmin = 1, vmax = NULL) %>% log10()
+list_output <- map2(
+  list_output,
+  list_lod, 
+  ~ {
+    .x$data <- .x$data %>% left_join(.y, by = "fov") %>% mutate(n = floor(n - cut)) %>% filter(n > 0)
+    return(.x)
+  }
+)
+list_output <- list_output %>% 
+  map(
+    ~ .x + 
+      scale_fill_continuous(type = "viridis", limits = fill_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      scale_y_discrete(breaks = target)
+  )
+
+cat("\n\n#### ", "Combined\n")
+print(plt_combined(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n#### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+### Calls Above Negative Probe LOD {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- map2(
+  list_combined_data, 
+  list_lod, 
+  ~ plt_percent_above_lod(combine_data = .x, lod = .y)
+)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+  
+cat("\n\n#### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n#### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## 3 sigma
+
+### Unique Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+list_lod <- list_mean_sd_type %>% 
+    map(~ .x %>% mutate(cut = mean + 3 * sd) %>% filter(group.by == "Negative") %>% select(fov, cut))
+list_output <- list_combined_data %>% 
+  map(~ .x %>% plt_n_unique_Fov())
+fill_range <- get_pdata_range(list_output, "n", 1, vmin = 1, vmax = NULL) %>% log10()
+list_output <- map2(
+  list_output,
+  list_lod, 
+  ~ {
+    .x$data <- .x$data %>% left_join(.y, by = "fov") %>% mutate(n = floor(n - cut)) %>% filter(n > 0)
+    return(.x)
+  }
+)
+list_output <- list_output %>% 
+  map(
+    ~ .x + 
+      scale_fill_continuous(type = "viridis", limits = fill_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      scale_y_discrete(breaks = target)
+  )
+
+cat("\n\n#### ", "Combined\n")
+print(plt_combined(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n#### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+### Calls Above Negative Probe LOD {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- map2(
+  list_combined_data, 
+  list_lod, 
+  ~ plt_percent_above_lod(combine_data = .x, lod = .y)
+)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+ 
+cat("\n\n#### ", "Combined\n")
+print(plt_combined_grid(list_output)) 
+for(i in seq_along(list_output)) {
+  cat("\n\n#### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+
+
+
+
+
+
+
+
+
