@@ -71,7 +71,7 @@ The meta data should contain at least the following information:
 
 ### DEMO
 
-![DEMO](demo_metadata.png)
+![DEMO](figure/demo_metadata.png)
 \# Columns with pink background are necessary. 
 
 ### File structure
