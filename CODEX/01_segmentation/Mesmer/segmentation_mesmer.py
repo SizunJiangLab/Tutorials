@@ -1,3 +1,9 @@
+'''
+Date: 2024-08-28
+Author: Huaying Qiu, Wenrui Wu
+'''
+
+
 import tifffile
 import json
 import numpy as np
@@ -12,31 +18,36 @@ from typing import List, Dict
 import skimage.io
 import skimage.measure
 import skimage.morphology
-from scipy.io import loadmat
-import tensorflow as tf
 from deepcell.applications import Mesmer
 from deepcell.utils.plot_utils import create_rgb_image, make_outline_overlay
 
 
-def load_config(folder_input: str) -> list:
+def get_path_file(folder_input: str) -> dict:
+    """
+    Get pathes of all files needed within the input folder. 
+    """
+    name = Path(folder_input).name
+    path_dict = {
+        "name": name, 
+        "path_qptiff": f"{folder_input}/{name}.qptiff", 
+        "path_marker": f"{folder_input}/{name}_MarkerList.txt", 
+        "path_metadata": f"{folder_input}/{name}_metadata.txt", 
+        "path_dearrayer": f"{folder_input}/{name}_dearrayer.txt"
+    }
+    return path_dict
+    
+def load_config(folder_input: str) -> dict:
+    """
+    Load all the paramters needed. 
+    """
     img_name = Path(folder_input).name
     path_config = f"{folder_input}/{img_name}_parameter.json"
     with open(path_config, 'r') as f:
-        config_list = json.load(f)
+        config_dict = json.load(f)
 
-    folder_input = config_list["folder_input"]
-    name = Path(folder_input).name
-    path_qptiff = f"{folder_input}/{name}.qptiff"
-    path_marker = f"{folder_input}/{name}_MarkerList.txt"
-    path_metadata = f"{folder_input}/{name}_metadata.txt"
-    path_dearrayer = f"{folder_input}/{name}_dearrayer.txt"
-
-    config_list["name"] = name
-    config_list["path_qptiff"] = path_qptiff
-    config_list["path_marker"] = path_marker
-    config_list["path_metadata"] = path_metadata
-    config_list["path_dearrayer"] = path_dearrayer
-    return config_list
+    get_all_path = config_dict["folder_input"]
+    path_dict = get_path_file(get_all_path)
+    return config_dict | path_dict
 
 def load_core_position(path_dearrayer: str, pixel_size_um: float, diameter_mm: float) -> pd.DataFrame:
     """
@@ -54,7 +65,7 @@ def load_core_position(path_dearrayer: str, pixel_size_um: float, diameter_mm: f
 
 def rename_invalid_marker(marker: str) -> str:
     """
-    rename the invalid marker name
+    rename the invalid marker name (containing "/" and ":"). 
     """
     marker = re.sub(r'[/:]', '_', marker)
     return marker
@@ -160,7 +171,6 @@ def extract_single_cell_info(core_dict: Dict[str, np.ndarray],
         pd.DataFrame(cell_sizes, columns=["cellSize"]),
         data_scale_size_df
     ], axis=1)
-
     return data_full, data_scale_size_full
 
 def process_tma(folder_input: str):
