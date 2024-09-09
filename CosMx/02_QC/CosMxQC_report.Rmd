@@ -231,46 +231,6 @@ for(i in seq_along(list_output)) {
 }
 ```
 
-## Mean and Standard Deviation of Transcripts  {.tabset .tabset-pills}
-```{r, results='asis'}
-list_output <- list_mean_sd_type %>% 
-  map(~ .x %>% filter(group.by == "Gene") %>% plt_mean_sd_by_group_Target())
-y_range <- get_pdata_range(list_output, "mean_sd", 1, 0)
-list_output <- list_output %>% 
-  map(
-    ~ .x +
-      scale_y_continuous(limits = y_range) +
-      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
-  )
-  
-cat("\n\n### ", "Combined\n")
-print(plt_combined_grid(list_output))
-for(i in seq_along(list_output)) {
-  cat("\n\n### ", list_run_name[[i]], "\n")
-  print(list_output[[i]])
-}
-```
-
-## Coefficient of Variation of Transcripts  {.tabset .tabset-pills}
-```{r, results='asis'}
-list_output <- list_mean_sd_type %>% 
-  map(~ .x %>% filter(group.by == "Gene") %>% plt_cv_by_group_Target())
-y_range <- get_pdata_range(list_output, "cv", 1, 0)
-list_output <- list_output %>% 
-  map(
-    ~ .x +
-      scale_y_continuous(limits = y_range) +
-      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
-  )
-  
-cat("\n\n### ", "Combined\n")
-print(plt_combined_grid(list_output))
-for(i in seq_along(list_output)) {
-  cat("\n\n### ", list_run_name[[i]], "\n")
-  print(list_output[[i]])
-}
-```
-
 
 # Transcripts of Negative Probes (per FOV)
 
@@ -315,47 +275,6 @@ for(i in seq_along(list_output)) {
 ```
 
 
-## Mean and Standard Deviation of Transcripts  {.tabset .tabset-pills}
-```{r, results='asis'}
-list_output <- list_mean_sd_type %>% 
-  map(~ .x %>% filter(group.by == "Negative") %>% plt_mean_sd_by_group_Target())
-y_range <- get_pdata_range(list_output, "mean_sd", 1, 0)
-list_output <- list_output %>% 
-  map(
-    ~ .x +
-      scale_y_continuous(limits = y_range) +
-      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
-  )
-  
-cat("\n\n### ", "Combined\n")
-print(plt_combined_grid(list_output))
-for(i in seq_along(list_output)) {
-  cat("\n\n### ", list_run_name[[i]], "\n")
-  print(list_output[[i]])
-}
-```
-
-## Coefficient of Variation of Transcripts  {.tabset .tabset-pills}
-```{r, results='asis'}
-list_output <- list_mean_sd_type %>% 
-  map(~ .x %>% filter(group.by == "Negative") %>% plt_cv_by_group_Target())
-y_range <- get_pdata_range(list_output, "cv", 1, 0)
-list_output <- list_output %>% 
-  map(
-    ~ .x +
-      scale_y_continuous(limits = y_range) +
-      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
-  )
-  
-cat("\n\n### ", "Combined\n")
-print(plt_combined_grid(list_output))
-for(i in seq_along(list_output)) {
-  cat("\n\n### ", list_run_name[[i]], "\n")
-  print(list_output[[i]])
-}
-```
-
-
 # Transcripts of False Codes (per FOV)
 
 ## Count of Transcripts  {.tabset .tabset-pills}
@@ -383,47 +302,6 @@ for(i in seq_along(list_output)) {
 list_output <- list_n_percent_type %>% 
   map(~ .x %>% filter(group.by == "SystemControl") %>% plt_percent_by_group_Fov())
 y_range <- get_pdata_range(list_output, "percent", 1, 0)
-list_output <- list_output %>% 
-  map(
-    ~ .x +
-      scale_y_continuous(limits = y_range) +
-      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
-  )
-  
-cat("\n\n### ", "Combined\n")
-print(plt_combined_grid(list_output))
-for(i in seq_along(list_output)) {
-  cat("\n\n### ", list_run_name[[i]], "\n")
-  print(list_output[[i]])
-}
-```
-
-
-## Mean and Standard Deviation of Transcripts  {.tabset .tabset-pills}
-```{r, results='asis'}
-list_output <- list_mean_sd_type %>% 
-  map(~ .x %>% filter(group.by == "SystemControl") %>% plt_mean_sd_by_group_Target())
-y_range <- get_pdata_range(list_output, "mean_sd", 1, 0)
-list_output <- list_output %>% 
-  map(
-    ~ .x +
-      scale_y_continuous(limits = y_range) +
-      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
-  )
-  
-cat("\n\n### ", "Combined\n")
-print(plt_combined_grid(list_output))
-for(i in seq_along(list_output)) {
-  cat("\n\n### ", list_run_name[[i]], "\n")
-  print(list_output[[i]])
-}
-```
-
-## Coefficient of Variation of Transcripts  {.tabset .tabset-pills}
-```{r, results='asis'}
-list_output <- list_mean_sd_type %>% 
-  map(~ .x %>% filter(group.by == "SystemControl") %>% plt_cv_by_group_Target())
-y_range <- get_pdata_range(list_output, "cv", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
