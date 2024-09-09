@@ -1,0 +1,73 @@
+---
+title: "Untitled"
+author: "Wenrui Wu"
+date: "2024-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Nanostring
+```{r}
+## preparing resources:
+# source the FOV QC tool:
+source("https://raw.githubusercontent.com/Nanostring-Biostats/CosMx-Analysis-Scratch-Space/Main/_code/FOV%20QC/FOV%20QC%20utils.R")
+# load necessary information for the QC tool: the gene to barcode map:
+allbarcodes <- readRDS(url("https://github.com/Nanostring-Biostats/CosMx-Analysis-Scratch-Space/raw/Main/_code/FOV%20QC/barcodes_by_panel.RDS"))
+names(allbarcodes)
+#> [1] "Hs_IO"    "Hs_UCC"   "Hs_6k"    "Mm_Neuro" "Mm_UCC"
+# get the barcodes for the panel we want:
+barcodemap <- allbarcodes$Hs_UCC
+head(barcodemap)
+#>    gene                          barcode
+#> 1  AATK ....GG......BB........YY......YY
+#> 2  ABL1 ............YYBBYY..........RR..
+#> 3  ABL2 ......RR........BB........RR..RR
+#> 4 ACACB BB............YY..YY....YY......
+#> 5   ACE ....BB....BB........RR..RR......
+#> 6 ACKR1 ......RR......GGRR......BB......
+
+## run the method:
+# fovqcresult <- runFOVQC(counts = counts, xy = xy, fov = metadata$FOV, barcodemap = barcodemap, max_prop_loss = 0.3) 
+#> The following FOVs failed QC for one or more barcode positions: s2f11
+```
+
+
+```{r}
+
+library(tidyverse)
+library(Matrix)
+
+df_to_matrix <- function(expreMat_sub) {
+  counts <- expreMat_sub %>% 
+    mutate(rowname = str_c(fov, "_", cell_ID)) %>% 
+    tibble::column_to_rownames("rowname") %>% 
+    select(-fov, -cell_ID, -contains("SystemControl"), -contains("Negative"))
+  counts <- as(as.matrix(counts), "sparseMatrix")
+  return(counts)
+}
+
+barcodemap <- allbarcodes$Hs_UCC
+
+
+
+exprMat_sub <- data.table::fread("/mnt/nfs/storage/CosMX/RCC_TMA541_section07_v132/AtoMx/flatFiles/BPC23NE_HTMA541_Section7_2ugml/BPC23NE_HTMA541_Section7_2ugml_exprMat_file.csv.gz")
+metadata_sub <- data.table::fread("/mnt/nfs/storage/CosMX/RCC_TMA541_section07_v132/AtoMx/flatFiles/BPC23NE_HTMA541_Section7_2ugml/BPC23NE_HTMA541_Section7_2ugml_metadata_file.csv.gz")
+counts <- df_to_matrix(exprMat_sub)
+xy <- metadata_sub %>% 
+  mutate(rowname = str_c(fov, "_", cell_ID)) %>% 
+  tibble::column_to_rownames("rowname") %>% 
+  select(CenterX_global_px, CenterY_global_px)
+fov <- metadata_sub$fov
+
+res <- runFOVQC(counts = counts, xy = xy, fov = fov, barcodemap = barcodemap,
+                max_prop_loss = 0.3, max_totalcounts_loss = 0.3) 
+res$flaggedfovs_fortotalcounts
+res$flagged_fov_x_gene
+res$flaggedfovs_forbias
+
+FOVEffectsHeatmap(res) 
+FOVSignalLossSpatialPlot(res, shownames = TRUE) 
+```

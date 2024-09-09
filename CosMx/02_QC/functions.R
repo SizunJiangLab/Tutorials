@@ -62,43 +62,43 @@ COLOR <- c(
 
 #' Find paths of all CosMx output files for QC
 #'
-#' @param input_file The path of the CosMx output foldler. 
+#' @param folder_input The path of the CosMx foldler following data standard (AtoMx folder).
 #'
 #' @return A list with the paths of all CosMx output files for QC. 
 #' @export
 #'
-find_all_files <- function(path_flat_files, path_logs_files){
-  all_flat_files <- list.files(path = path_flat_files, pattern = "[.]csv", recursive = TRUE, full.names = TRUE)
-  all_logs_files <- list.files(path = path_logs_files, pattern = "[.]csv", recursive = TRUE, full.names = TRUE)
+find_all_files <- function(folder_input){
+  # pattern for flatfiles
+  pattern_flatfile_list <- list(
+    exprMat_file = ".*exprMat_file[.]csv[.]gz$", 
+    metadata_file = ".*metadata_file[.]csv[.]gz$", 
+    tx_file = ".*tx_file[.]csv[.]gz$", 
+    polygons = ".*polygons[.]csv[.]gz$", 
+    fov_positions_file = ".*fov_positions_file[.]csv[.]gz$"
+  )
+  # path for flatfiles
+  flatfiles <- fs::dir_ls(fs::path(folder_input, "flatFiles/"), recurse = TRUE)
+  flatfile_list <- pattern_flatfile_list %>% 
+    purrr::map(~ stringr::str_subset(flatfiles, .x))
   
-  # grep all files 
-  path_flat_list <- list(
-    exprMat_path = "exprMat_file[.]csv([.]gz)?$", 
-    metadata_path = "metadata_file[.]csv([.]gz)?$", 
-    tx_path = "tx_file[.]csv([.]gz)?$", 
-    polygons_path = "polygons[.]csv([.]gz)?$", 
-    positions_path = "positions_file[.]csv([.]gz)?$"
-  ) %>% 
-    purrr::map(~ grep(pattern = .x, ignore.case = TRUE, value = TRUE, all_flat_files))
-  path_flat_list <- path_flat_list %>% 
-    purrr::map(~ {
-      if (length(.x) > 1) {.x <- .x[1]}
-      return(.x)
-    })
-  path_logs_list <- list(
-    Log_path = "fovs[.]csv"
-  ) %>% 
-    purrr::map(~ grep(pattern = .x, ignore.case = TRUE, value = TRUE, all_logs_files))
-  path_list <- c(path_flat_list, path_logs_list)
+  # pattern for rawfiles
+  pattern_rawfile_list <- list(
+    fovs = "Logs/.*[.]fovs[.]csv$"
+  )
+  # path for rawfiles
+  rawfiles <- fs::dir_ls(fs::path(folder_input, "RawFiles/"), recurse = TRUE)
+  rawfile_list <- pattern_rawfile_list %>% 
+    purrr::map(~ stringr::str_subset(rawfiles, .x))
   
-  # Check existence of each file
-  missing_files <- names(which(!purrr::map_lgl(path_list, file.exists)))
+  # path for all files
+  path_list <- c(flatfile_list, rawfile_list)
+  missing_files <- names(which(purrr::map_lgl(path_list, ~ length(.x) == 0)))
   if (length(missing_files) > 0) {
     cat("The following files are missing:\n")
     cat(paste(seq_along(missing_files), missing_files, sep = ". ", collapse = "\n"))
     cat("\nPlease make sure all required files exist and try again.\n")
     # Halt execution
-    q(save = "no",status = 1)
+    # q(save = "no",status = 1)
   }
   return(path_list)
 }
@@ -116,19 +116,19 @@ find_all_files <- function(path_flat_files, path_logs_files){
 #'
 load_all_files <- function(path_list){
   # Read data files
-  exprMat_sub <- data.table::fread(path_list$exprMat_path) %>% distinct()
-  metadata_sub <- data.table::fread(path_list$metadata_path) %>% distinct()
-  tx_sub <- data.table::fread(path_list$tx_path) %>% distinct()
-  polygons_sub <- data.table::fread(path_list$polygons_path) %>% distinct()
-  positions <- data.table::fread(path_list$positions_path) %>% distinct()
+  exprMat_sub <- data.table::fread(path_list$exprMat_file) %>% distinct()
+  metadata_sub <- data.table::fread(path_list$metadata_file) %>% distinct()
+  tx_sub <- data.table::fread(path_list$tx_file) %>% distinct()
+  polygons_sub <- data.table::fread(path_list$polygons) %>% distinct()
+  positions <- data.table::fread(path_list$fov_positions_file) %>% distinct()
   positions <- positions %>% 
     rename_with(~ "X_mm", .cols = any_of(c("X_mm", "x_global_mm"))) %>% 
     rename_with(~ "Y_mm", .cols = any_of(c("Y_mm", "y_global_mm"))) 
-  log.file <- data.table::fread(path_list$Log_path) %>% distinct()
+  log.file <- data.table::fread(path_list$fovs) %>% distinct()
   
   SlideIndex <- unique(metadata_sub$slide_ID)
   # positions <- positions[positions$Slide==SlideIndex,]
-  log.file <- log.file[log.file$Slide ==SlideIndex,]
+  log.file <- log.file[log.file$Slide == SlideIndex,]
   
   # position of FOV
   metadata_sub <- metadata_sub %>% 
@@ -178,9 +178,49 @@ load_all_files <- function(path_list){
 }
 
 
-# Data Processing and Visualization ---------------------------------------
+# General functions #####
 
-## Global-View Of Entire Run #####
+## Range of pdata #####
+get_pdata_range <- function(list_p, col = "n", quantile_cut = 1, vmin = 0, vmax = NULL) {
+  v_max <- max(unlist(purrr::map(list_p, ~ quantile(.x$data[[col]], quantile_cut))))
+  v_min <- min(unlist(purrr::map(list_p, ~ quantile(.x$data[[col]], 1 - quantile_cut))))
+  if (!is.null(vmin)) {v_min <- min(v_min, vmin)}
+  if (!is.null(vmax)) {v_min <- min(v_min, vmax)}
+  v_range <- c(v_min, v_max)
+  return(v_range)
+}
+
+## combined plot #####
+plt_combined <- function(list_p, list_title = list_run_name) {
+  p_combined <- purrr::map2(
+    list_p, 
+    list_title, 
+    ~ .x + labs(subtitle = .y)
+  ) %>% 
+    wrap_plots(guides = "collect", widths = rep(1, length(list_title))) &
+    theme(
+      plot.subtitle = element_text(hjust = .5), 
+      legend.position = "top"
+    )
+  return(p_combined)
+}
+
+plt_combined_grid <- function(list_p, list_title = list_run_name) {
+  p_combined <- list_output[[1]]
+  p_combined$data <- purrr::map2(
+    list_output, 
+    list_run_name, 
+    ~ .x$data %>% mutate(tag_facet = .y)
+  ) %>% 
+    bind_rows() %>% 
+    mutate(across(tag_facet, ~ factor(.x, levels = list_run_name)))
+  p_combined <- p_combined +
+    facet_grid(~ tag_facet, scales = "free")
+  return(p_combined)
+}
+
+
+# Global-View Of Entire Run #####
 
 #' Data for Global Summary
 #'
@@ -196,7 +236,7 @@ global_summarize_Fov <- function(combined_data){
   FOVNumberTotal <- length(unique(combined_data$exprMat_sub$fov))
   TranscriptsNumberTotal <- nrow(combined_data$tx_sub)
   
-  target_real <- sum(combined_data $tx_sub$target_type == "Gene")
+  target_real <- sum(combined_data$tx_sub$target_type == "Gene")
   target_negative <- sum(combined_data $tx_sub$target_type == "Negative")
   target_false <- sum(combined_data $tx_sub$target_type == "SystemControl")
   # UnassignedTranscriptsNumberTotal <- sum(combined_data$tx_sub$cell_ID == 0)
@@ -245,7 +285,7 @@ GlobalViewTable_func <- function(Global_View){
 }
 
 
-## Profiling position  (FOV number) #####
+# Profiling position  (FOV index) #####
 
 # function for Profiling position and order (FOV number/ Order)
 plt_fov_position <- function(combined_data){
@@ -267,40 +307,7 @@ plt_fov_position <- function(combined_data){
 }
 
 
-## Range of pdata #####
-
-get_pdata_range <- function(list_p, col = "n", quantile_cut = 1, vmin = 0, vmax = NULL) {
-  v_max <- max(unlist(purrr::map(list_p, ~ quantile(.x$data[[col]], quantile_cut))))
-  v_min <- min(unlist(purrr::map(list_p, ~ quantile(.x$data[[col]], 1 - quantile_cut))))
-  if (!is.null(vmin)) {v_min <- min(v_min, vmin)}
-  if (!is.null(vmax)) {v_min <- min(v_min, vmax)}
-  v_range <- c(v_min, v_max)
-  return(v_range)
-}
-
-## combined plot #####
-plt_combined <- function(list_p, list_title = list_run_name) {
-  p_combined <- purrr::map2(list_p, list_title, ~ .x + labs(subtitle = .y)) %>% 
-    wrap_plots(guides = "collect", widths = rep(1, length(list_title))) &
-    theme(
-      plot.subtitle = element_text(hjust = .5), 
-      legend.position = "top"
-    )
-  return(p_combined)
-}
-
-plt_combined_grid <- function(list_p, list_title = list_run_name) {
-  p_combined <- list_output[[1]]
-  p_combined$data <- map2(list_output, list_run_name, ~ .x$data %>% mutate(tag_facet = .y)) %>% 
-    bind_rows() %>% 
-    mutate(across(tag_facet, ~ factor(.x, levels = list_run_name)))
-  p_combined <- p_combined +
-    facet_grid(~ tag_facet, scales = "free")
-  return(p_combined)
-}
-
-
-## Total number of cells per FOV #####
+# Total number of cells per FOV #####
 
 # function for Total number of cells per FOV
 plt_n_cell_Fov <- function(combined_data = combined_data) {
@@ -316,7 +323,7 @@ plt_n_cell_Fov <- function(combined_data = combined_data) {
 }
 
 
-## Size of cells per cell per FOV #####
+# Size of cells per cell per FOV #####
 plt_size_cell_CellFov <- function(combined_data = combined_data) {
   p <- combined_data$metadata_sub %>% 
     ggplot(aes(x = fov, y = Area.um2)) +
@@ -328,7 +335,7 @@ plt_size_cell_CellFov <- function(combined_data = combined_data) {
 }
 
 
-## Correlation #####
+# Correlation #####
 plt_cor_xy <- function(combined_data = combined_data, x, y) {
   df_p <- combined_data$metadata_sub %>% 
     select(setNames(c(x, y), c("x", "y")))
@@ -358,7 +365,7 @@ plt_combined <- function(list_p, list_title = list_run_name) {
   return(p_combined)
 }
 
-## Unique targets detected per FOV #####
+# Unique targets detected per FOV #####
 
 plt_n_unique_Fov <- function(combined_data, df_backgroupd = df_target_type) {
   target_n <- combined_data$tx_sub %>% 
@@ -387,7 +394,7 @@ plt_n_unique_Fov <- function(combined_data, df_backgroupd = df_target_type) {
 }
 
 
-## Number of unique targets detected per cell per FOV #####
+# Number of unique targets detected per cell per FOV #####
 
 plt_n_unique_CellFov <- function(combined_data) {
   p <- combined_data$metadata_sub %>% 

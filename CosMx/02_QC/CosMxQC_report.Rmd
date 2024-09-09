@@ -55,29 +55,21 @@ source(here::here("functions.R"))
 # A_input_file = params$parameter1
 # B_input_file = params$parameter2
 
-
-path_flat_files <- c(
-  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section01_v132/AtoMx/flatFiles/Indepth_EBV971_CosMx/", 
-  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section02_v132/AtoMx/flatFiles/Indepth_EBV_971_Fusion_CosMx/"
+input_folders <- c(
+  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section01_v132/AtoMx/", 
+  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section02_v132/AtoMx/", 
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section04_v132/AtoMx/", 
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section06_v132/AtoMx/" 
 )
-path_logs_files <- c(
-  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section01_v132/AtoMx/RawFiles/Indepth_EBV97.1_CosMx/Logs/", 
-  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section02_v132/AtoMx/RawFiles/240209_INDEPTH_FusionCosMx_10/Logs/"
-)
-
-list_path_all_files <- map2(
-  path_flat_files, 
-  path_logs_files, 
-  ~ find_all_files(path_flat_files = .x, path_logs_files = .y)
-)
-
+list_path_all_files <- purrr::map(input_folders, find_all_files)
 list_combined_data <- map(list_path_all_files, ~ load_all_files(.x), .progress = TRUE)
 
 
 # Parameters
 all_fov <- map(list_combined_data, ~ {unique(c(.x$metadata_sub$fov, .x$tx_sub$fov))})
 nchar_fov <- all_fov %>% unlist() %>% as.character() %>% nchar() %>% max()
-list_run_name <- list_combined_data %>% map(~ unique(.x$metadata_sub$Run_Tissue_name))
+# list_run_name <- list_combined_data %>% map(~ unique(.x$metadata_sub$Run_Tissue_name))
+list_run_name <- input_folders %>% fs::path_dir() %>% fs::path_file()
 list_all_cell <- list_combined_data %>% map(~ .x$metadata_sub %>% distinct(fov, cell))
 
 target <- colnames(list_combined_data[[1]]$exprMat_sub)
@@ -503,4 +495,3 @@ for(i in seq_along(list_output)) {
   print(list_output[[i]])
 }
 ```
-
