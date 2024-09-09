@@ -8,7 +8,7 @@ params:
   parameter1: "/bmbl_data/yuzhou/collaborative/Sizun_lab/Protocol_CosMX/CosMXQC/Data/BPC23NE_HTMA541_section9_3ugml_1"
   parameter2: "/bmbl_data/yuzhou/collaborative/Sizun_lab/Protocol_CosMX/CosMXQC/Data/BPC23NE_HTMA541_section9_3ugml_2"
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{css, echo = FALSE}
@@ -56,10 +56,10 @@ source(here::here("functions.R"))
 # B_input_file = params$parameter2
 
 input_folders <- c(
-  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section01_v132/AtoMx/", 
-  "/mnt/nfs/storage/CosMX/Indepth_TMA971_section02_v132/AtoMx/", 
-  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section04_v132/AtoMx/", 
-  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section06_v132/AtoMx/" 
+  "/mnt/nfs/home/zhenshengzhang/CosMx/AH/AH_TMA1_section02_v132/AtoMx", 
+  "/mnt/nfs/home/zhenshengzhang/CosMx/AH/AH_TMA1_section03_v132_2/AtoMx",
+  '/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/AtoMx', 
+  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section06_v132/AtoMx"
 )
 list_path_all_files <- purrr::map(input_folders, find_all_files)
 list_combined_data <- map(list_path_all_files, ~ load_all_files(.x), .progress = TRUE)
@@ -69,7 +69,7 @@ list_combined_data <- map(list_path_all_files, ~ load_all_files(.x), .progress =
 all_fov <- map(list_combined_data, ~ {unique(c(.x$metadata_sub$fov, .x$tx_sub$fov))})
 nchar_fov <- all_fov %>% unlist() %>% as.character() %>% nchar() %>% max()
 # list_run_name <- list_combined_data %>% map(~ unique(.x$metadata_sub$Run_Tissue_name))
-list_run_name <- input_folders %>% fs::path_dir() %>% fs::path_file()
+list_run_name <- input_folders %>% stringr::str_remove("AtoMx") %>% fs::path_file()
 list_all_cell <- list_combined_data %>% map(~ .x$metadata_sub %>% distinct(fov, cell))
 
 target <- colnames(list_combined_data[[1]]$exprMat_sub)
@@ -156,7 +156,7 @@ y_range <- c(0, y_max)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -176,7 +176,7 @@ y_range <- c(0, 100)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
  
@@ -199,7 +199,7 @@ y_range <- get_pdata_range(list_output, "n", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -219,7 +219,7 @@ y_range <- get_pdata_range(list_output, "percent", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -242,7 +242,7 @@ y_range <- get_pdata_range(list_output, "n", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -262,7 +262,7 @@ y_range <- get_pdata_range(list_output, "percent", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -285,7 +285,7 @@ y_range <- get_pdata_range(list_output, "n", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -305,7 +305,7 @@ y_range <- get_pdata_range(list_output, "percent", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
   )
   
@@ -340,7 +340,7 @@ y_range <- get_pdata_range(list_output, "n", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
       labs(y = "Experimental Error (%)")
   )
@@ -361,9 +361,370 @@ y_range <- get_pdata_range(list_output, "n", 1, 0)
 list_output <- list_output %>% 
   map(
     ~ .x +
-      scale_y_continuous(limits = y_range) +
+      coord_cartesian(ylim = y_range) +
       scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
       labs(y = "Matching Error (%)")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Cell number and size
+## Total number of cells (per FOV) {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_combined_data %>% 
+  map(plt_n_cell_Fov)
+y_range <- get_pdata_range(list_output, "n", 1, 0)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Total number of cells")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Size of cells (per cell per FOV) {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_combined_data %>% 
+  map(plt_size_cell_CellFov)
+y_range <- get_pdata_range(list_output, "Area.um2", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Size of cells (um2)")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+# Transcripts of All (per cell per FOV)
+## Count of Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_all_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = nCount_RNA + nCount_negprobes + nCount_falsecode) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_all_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Count of Transcripts / Area (per cell per FOV) {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_all_area_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = (nCount_RNA + nCount_negprobes + nCount_falsecode) / Area.um2) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_all_area_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts / um2")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+# Transcripts of Real Genes (per cell per FOV)
+## Count of Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_real_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = nCount_RNA) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5, fill = COLOR[["Gene"]]) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_real_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Count of Transcripts / Area (per cell per FOV) {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_real_area_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = (nCount_RNA) / Area.um2) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5, fill = COLOR[["Gene"]]) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_real_area_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts / um2")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Transcripts of Negative Probes (per cell per FOV)
+## Count of Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_neg_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = nCount_negprobes) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5, fill = COLOR[["Negative"]]) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_neg_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Count of Transcripts / Area (per cell per FOV) {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_neg_area_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = (nCount_negprobes) / Area.um2) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5, fill = COLOR[["Negative"]]) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_neg_area_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts / um2")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+
+# Transcripts of False Codes (per cell per FOV)
+## Count of Transcripts {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_false_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = nCount_falsecode) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5, fill = COLOR[["SystemControl"]]) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_false_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Count of Transcripts / Area (per cell per FOV) {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_n_tx_false_area_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = (nCount_falsecode) / Area.um2) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5, fill = COLOR[["SystemControl"]]) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_n_tx_false_area_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Count of Transcripts / um2")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+# Overall Error Rates (per cell per FOV)
+## Experimental Error (Negative / Real)  {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_tx_neg_real_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = nCount_negprobes / nCount_RNA) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_tx_neg_real_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "Negative Probes / Real Genes")
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined_grid(list_output))
+for(i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
+
+## Matching Error (False / Real)  {.tabset .tabset-pills}
+```{r, results='asis'}
+plt_tx_false_real_cell <- function(combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    mutate(n = nCount_falsecode / nCount_RNA) %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5) +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+list_output <- list_combined_data %>% 
+  map(plt_tx_false_real_cell)
+y_range <- get_pdata_range(list_output, "n", quantile_cut = 0.99, vmin = NULL, vmax = NULL)
+list_output <- list_output %>% 
+  map(
+    ~ .x +
+      coord_cartesian(ylim = y_range) +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0")) +
+      labs(y = "False Codes / Real Genes")
   )
 
 cat("\n\n### ", "Combined\n")

@@ -7,7 +7,7 @@ theme_col_count <- function() {
     # scale_y_continuous(expand = expansion(c(0, 0.05))), 
     theme_bw(), 
     theme(
-      axis.text.x = element_text(angle = 90, hjust = 1), 
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
       legend.position = "top", 
       panel.grid.major.x = element_blank(), 
       panel.grid.minor.x = element_blank(), 
@@ -21,7 +21,7 @@ theme_col_percent <- function() {
     # scale_y_continuous(expand = expansion(c(0, 0))), 
     theme_bw(), 
     theme(
-      axis.text.x = element_text(angle = 90, hjust = 1), 
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
       legend.position = "top", 
       panel.grid.major.x = element_blank(), 
       panel.grid.minor.x = element_blank(), 
@@ -35,7 +35,7 @@ theme_boxplot <- function() {
     # scale_y_continuous(expand = expansion(c(0.05, 0.05))), 
     theme_bw(), 
     theme(
-      axis.text.x = element_text(angle = 90, hjust = 1), 
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
       panel.grid.major.x = element_blank(), 
       panel.grid.minor.x = element_blank(), 
       axis.ticks.x = element_blank()
@@ -307,64 +307,6 @@ plt_fov_position <- function(combined_data){
 }
 
 
-# Total number of cells per FOV #####
-
-# function for Total number of cells per FOV
-plt_n_cell_Fov <- function(combined_data = combined_data) {
-  cell_counts_per_fov <- combined_data$metadata_sub %>%
-    group_by(fov) %>%
-    summarise(n = n())
-  p <- cell_counts_per_fov %>% 
-    ggplot(aes(x = fov, y = n)) +
-    geom_col() +
-    labs(x = "FOV", y = "Count") +
-    theme_col_count() 
-  return(p)
-}
-
-
-# Size of cells per cell per FOV #####
-plt_size_cell_CellFov <- function(combined_data = combined_data) {
-  p <- combined_data$metadata_sub %>% 
-    ggplot(aes(x = fov, y = Area.um2)) +
-    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5) +
-    geom_hline(yintercept = (1:3 * 10 / 2)^2 * pi, linetype = 2, color = "blue") +
-    labs(x = "FOV") +
-    theme_boxplot()
-  return(p)
-}
-
-
-# Correlation #####
-plt_cor_xy <- function(combined_data = combined_data, x, y) {
-  df_p <- combined_data$metadata_sub %>% 
-    select(setNames(c(x, y), c("x", "y")))
-  res_cor <- cor.test(df_p$x, df_p$y)
-  p_title <- paste(
-    sprintf("cor = %.4f", round(res_cor$estimate, 4)), 
-    ifelse(res_cor$p.value < 0.0001, "p < 0.0001", sprintf("p = %.4f", round(res_cor$p.value, 4))), 
-    sep = ", "
-  )
-  p <- df_p %>% 
-    ggplot(aes(x = x, y = y)) +
-    geom_point() +
-    geom_smooth(method = "lm") +
-    labs(x = x, y = y, title = p_title) +
-    theme_bw()
-  return(p)
-}
-
-
-plt_combined <- function(list_p, list_title = list_run_name) {
-  p_combined <- purrr::map2(list_p, list_title, ~ .x + labs(subtitle = .y)) %>% 
-    wrap_plots(guides = "collect", widths = rep(1, length(list_title))) &
-    theme(
-      plot.subtitle = element_text(hjust = .5), 
-      legend.position = "top"
-    )
-  return(p_combined)
-}
-
 # Unique targets detected per FOV #####
 
 plt_n_unique_Fov <- function(combined_data, df_backgroupd = df_target_type) {
@@ -561,7 +503,53 @@ plt_n_target_CellFov <- function(tx_sub = combined_data$tx_sub, all_cell) {
 }
 
 
-## Transcripts True Gene (Non-Control) vs Negative Control #####
+# Total number of cells (per FOV) #####
+plt_n_cell_Fov <- function(combined_data = combined_data) {
+  cell_counts_per_fov <- combined_data$metadata_sub %>%
+    group_by(fov) %>%
+    summarise(n = n())
+  p <- cell_counts_per_fov %>% 
+    ggplot(aes(x = fov, y = n)) +
+    geom_col() +
+    labs(x = "FOV", y = "Count") +
+    theme_col_count() 
+  return(p)
+}
+
+# Size of cells per cell per FOV #####
+plt_size_cell_CellFov <- function(combined_data = combined_data) {
+  p <- combined_data$metadata_sub %>% 
+    ggplot(aes(x = fov, y = Area.um2)) +
+    geom_boxplot(outlier.alpha = 1/5, outlier.size = 0.5) +
+    # geom_hline(yintercept = (1:2 * 10 / 2)^2 * pi, linetype = 2, color = "blue") +
+    labs(x = "FOV") +
+    theme_boxplot()
+  return(p)
+}
+
+# Correlation #####
+plt_cor_xy <- function(combined_data = combined_data, x, y) {
+  df_p <- combined_data$metadata_sub %>% 
+    select(setNames(c(x, y), c("x", "y")))
+  res_cor <- cor.test(df_p$x, df_p$y)
+  p_title <- paste(
+    sprintf("cor = %.4f", round(res_cor$estimate, 4)), 
+    ifelse(res_cor$p.value < 0.0001, "p < 0.0001", sprintf("p = %.4f", round(res_cor$p.value, 4))), 
+    sep = ", "
+  )
+  p <- df_p %>% 
+    ggplot(aes(x = x, y = y)) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    labs(x = x, y = y, title = p_title) +
+    theme_bw()
+  return(p)
+}
+
+
+
+
+# Transcripts True Gene (Non-Control) vs Negative Control #####
 get_negative_adjust_Fov <- function(combined_data) {
   count_target <- combined_data$tx_sub %>%
     group_by(fov, target_type) %>% 
