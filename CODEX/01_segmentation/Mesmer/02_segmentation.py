@@ -39,10 +39,15 @@ except:
 # Run Segmentation 
 def main():
     # select parameter ^ #####
-    folder_input = "/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_test/data_input/20240611_LMS-TMA_Scan1/"
+    folder_input_list = [
+        "/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_raw/20240616_TMA464_Scan1", 
+        "/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_raw/20240616_TMA465_Scan1", 
+        "/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_raw/20240621_TMA201_Scan1", 
+        "/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_raw/20240621_TMA466_Scan1"
+    ]
     # select parameter $ #####
-
-    segmentation_mesmer.process_tma(folder_input)
+    for folder_input in folder_input_list:
+        segmentation_mesmer.process_tma(folder_input)
 
 if __name__ == "__main__":
     main()
