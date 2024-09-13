@@ -24,7 +24,7 @@ from deepcell.utils.plot_utils import create_rgb_image, make_outline_overlay
 
 def get_path_file(folder_input: str) -> dict:
     """
-    Get pathes of all files needed within the input folder. 
+    Get paths of all files needed within the input folder. 
     """
     name = Path(folder_input).name
     path_dict = {
@@ -36,15 +36,12 @@ def get_path_file(folder_input: str) -> dict:
     }
     return path_dict
     
-def load_config(folder_input: str) -> dict:
+def load_config(path_parameter: str) -> dict:
     """
-    Load all the paramters needed. 
+    Load all the parameters needed. 
     """
-    img_name = Path(folder_input).name
-    path_config = f"{folder_input}/{img_name}_parameter.json"
-    with open(path_config, 'r') as f:
+    with open(path_parameter, "r") as f:
         config_dict = json.load(f)
-
     get_all_path = config_dict["folder_input"]
     path_dict = get_path_file(get_all_path)
     return config_dict | path_dict
@@ -85,6 +82,30 @@ def load_qptiff(path_qptiff: str) -> np.ndarray:
     """
     qptiff_img = tifffile.imread(path_qptiff)
     return qptiff_img
+
+def crop_tma(path_parameter):
+    config = load_config(path_parameter)
+    keys = ["name", "path_qptiff", "path_dearrayer", "path_marker",  "pixel_size_um", "diameter_mm", "folder_output"]
+    config = {key: config.get(key) for key in keys}
+    with open(f'{config["folder_output"]}/{config["name"]}/parameter_crop.json', "w") as file:
+        json.dump(config, file, indent=4)
+
+    pos_df = load_core_position(config["path_dearrayer"], config["pixel_size_um"], config["diameter_mm"])
+    logging.info('Core positions loaded and vertices calculated')
+    qptiff_img = load_qptiff(config["path_qptiff"])
+    logging.info('qptiff loaded for segmentation')
+    marker_list = load_marker_list(config["path_marker"])
+    logging.info('Marker lists loaded')
+
+    for _, row in tqdm(pos_df.iterrows()):
+        core_name = row["Name"]
+        core_img = qptiff_img[:, row["y_beg_px"]:row["y_end_px"], row["x_beg_px"]:row["x_end_px"]]
+        folder_output_core = f'{config["folder_output"]}/{config["name"]}/{core_name}/marker'
+        os.makedirs(folder_output_core, exist_ok=True)
+        # Save markers
+        for marker in marker_list:
+            tifffile.imwrite(f"{folder_output_core}/{marker}.tiff", core_img[marker_list.index(marker)])
+        logging.info(f'Markers saved for core {core_name}')
 
 def img_scale_marker(img: np.ndarray, marker: str, marker_list: List[str], scale: bool=True) -> np.ndarray:
     img_marker = img[marker_list.index(marker)]
