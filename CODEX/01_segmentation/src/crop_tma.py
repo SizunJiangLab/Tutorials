@@ -58,22 +58,55 @@ def crop_tma(path_parameter):
     config = load_config(path_parameter)
     keys = ["name", "path_qptiff", "path_dearrayer", "path_marker",  "pixel_size_um", "diameter_mm", "folder_output"]
     config = {key: config.get(key) for key in keys}
-    with open(f'{config["folder_output"]}/{config["name"]}/parameter_crop.json', "w") as file:
+    folder_output_tma = f'{config["folder_output"]}/{config["name"]}'
+    os.makedirs(folder_output_tma, exist_ok=True)
+    with open(f'{folder_output_tma}/parameter_crop.json', "w") as file:
         json.dump(config, file, indent=4)
 
     pos_df = load_core_position(config["path_dearrayer"], config["pixel_size_um"], config["diameter_mm"])
     logging.info('Core positions loaded and vertices calculated')
     qptiff_img = load_qptiff(config["path_qptiff"])
-    logging.info('qptiff loaded for segmentation')
+    logging.info('qptiff loaded')
     marker_list = load_marker_list(config["path_marker"])
     logging.info('Marker lists loaded')
 
     for _, row in tqdm(pos_df.iterrows()):
         core_name = row["Name"]
         core_img = qptiff_img[:, row["y_beg_px"]:row["y_end_px"], row["x_beg_px"]:row["x_end_px"]]
-        folder_output_core = f'{config["folder_output"]}/{config["name"]}/{core_name}/marker'
+        folder_output_core = f'{folder_output_tma}/{core_name}/marker'
         os.makedirs(folder_output_core, exist_ok=True)
         # Save markers
         for marker in marker_list:
             tifffile.imwrite(f"{folder_output_core}/{marker}.tiff", core_img[marker_list.index(marker)])
         logging.info(f'Markers saved for core {core_name}')
+
+# [todo] read and cut mask/marker (if shape > 3000 * 3000)
+# def cut_and_save_cores(tma: str, core_dict: Dict):
+#     """
+#     Cut cores into smaller sections and save as TIFF files.
+#     """
+#     for core_num, markers in tqdm(core_dict.items(), desc="Cutting and saving cores"):
+#         seg_path = f'{OUTPUT_DIR}/seg_results_8bit/{tma}/{core_num}/MESMER_mask.tiff'
+#         try:
+#             seg_mask = tifffile.imread(seg_path)
+#         except FileNotFoundError:
+#             logging.warning(f"Segmentation mask not found for core {core_num}. Skipping.")
+#             continue
+#
+#         img_height, img_width = seg_mask.shape
+#         height_mid, width_mid = img_height // 2, img_width // 2
+#
+#         for fov in range(4):
+#             output_path = f'{OUTPUT_DIR}/mantis_img_8bit/{tma}/{core_num}_fov{fov}'
+#             os.makedirs(output_path, exist_ok=True)
+#
+#             x1 = (fov % 2) * width_mid
+#             x2 = ((fov + 1) % 2) * width_mid + ((fov + 2) % 2) * img_width
+#             y1 = (fov // 2) * height_mid
+#             y2 = ((fov // 2 + 1) % 2) * height_mid + ((fov // 2 + 2) % 2) * img_height
+#
+#             tifffile.imwrite(os.path.join(output_path, 'seg_mask.tiff'), seg_mask[y1:y2, x1:x2])
+#
+#             for marker, img in markers.items():
+#                 marker_fov_img = img[y1:y2, x1:x2]
+#                 tifffile.imwrite(os.path.join(output_path, f'{marker}.tiff'), marker_fov_img)
