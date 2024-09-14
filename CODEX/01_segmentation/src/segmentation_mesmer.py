@@ -1,5 +1,5 @@
 '''
-Date: 2024-08-28
+Date: 2024-09-13
 Author: Huaying Qiu, Wenrui Wu
 '''
 
@@ -22,90 +22,7 @@ from deepcell.applications import Mesmer
 from deepcell.utils.plot_utils import create_rgb_image, make_outline_overlay
 
 
-def get_path_file(folder_input: str) -> dict:
-    """
-    Get paths of all files needed within the input folder. 
-    """
-    name = Path(folder_input).name
-    path_dict = {
-        "name": name, 
-        "path_qptiff": f"{folder_input}/{name}.qptiff", 
-        "path_marker": f"{folder_input}/{name}_MarkerList.txt", 
-        "path_metadata": f"{folder_input}/{name}_metadata.txt", 
-        "path_dearrayer": f"{folder_input}/{name}_dearrayer.txt"
-    }
-    return path_dict
-    
-def load_config(path_parameter: str) -> dict:
-    """
-    Load all the parameters needed. 
-    """
-    with open(path_parameter, "r") as f:
-        config_dict = json.load(f)
-    get_all_path = config_dict["folder_input"]
-    path_dict = get_path_file(get_all_path)
-    return config_dict | path_dict
 
-def load_core_position(path_dearrayer: str, pixel_size_um: float, diameter_mm: float) -> pd.DataFrame:
-    """
-    Load core position data for a given TMA.
-    Calculate the four vertices of each core.
-    """
-    pos_df = pd.read_csv(path_dearrayer, sep='\t')
-    radius_um = diameter_mm * 1000 / 2  # Convert diameter in mm to radius in um
-
-    pos_df['x_beg_px'] = ((pos_df['Centroid X µm'] - radius_um) / pixel_size_um).apply(math.floor)
-    pos_df['x_end_px'] = ((pos_df['Centroid X µm'] + radius_um) / pixel_size_um).apply(math.ceil)
-    pos_df['y_beg_px'] = ((pos_df['Centroid Y µm'] - radius_um) / pixel_size_um).apply(math.floor)
-    pos_df['y_end_px'] = ((pos_df['Centroid Y µm'] + radius_um) / pixel_size_um).apply(math.ceil)
-    return pos_df
-
-def rename_invalid_marker(marker: str) -> str:
-    """
-    rename the invalid marker name (containing "/" and ":"). 
-    """
-    marker = re.sub(r'[/:]', '_', marker)
-    return marker
-
-def load_marker_list(path_marker: str) -> list:
-    """
-    Load interested marker lists.
-    """
-    with open(path_marker, 'r') as f:
-        marker_list = f.read().splitlines()
-    marker_list = [rename_invalid_marker(marker) for marker in marker_list if len(marker) > 0]
-    return marker_list
-
-def load_qptiff(path_qptiff: str) -> np.ndarray:
-    """
-    Load qptiff file for a given TMA.
-    """
-    qptiff_img = tifffile.imread(path_qptiff)
-    return qptiff_img
-
-def crop_tma(path_parameter):
-    config = load_config(path_parameter)
-    keys = ["name", "path_qptiff", "path_dearrayer", "path_marker",  "pixel_size_um", "diameter_mm", "folder_output"]
-    config = {key: config.get(key) for key in keys}
-    with open(f'{config["folder_output"]}/{config["name"]}/parameter_crop.json', "w") as file:
-        json.dump(config, file, indent=4)
-
-    pos_df = load_core_position(config["path_dearrayer"], config["pixel_size_um"], config["diameter_mm"])
-    logging.info('Core positions loaded and vertices calculated')
-    qptiff_img = load_qptiff(config["path_qptiff"])
-    logging.info('qptiff loaded for segmentation')
-    marker_list = load_marker_list(config["path_marker"])
-    logging.info('Marker lists loaded')
-
-    for _, row in tqdm(pos_df.iterrows()):
-        core_name = row["Name"]
-        core_img = qptiff_img[:, row["y_beg_px"]:row["y_end_px"], row["x_beg_px"]:row["x_end_px"]]
-        folder_output_core = f'{config["folder_output"]}/{config["name"]}/{core_name}/marker'
-        os.makedirs(folder_output_core, exist_ok=True)
-        # Save markers
-        for marker in marker_list:
-            tifffile.imwrite(f"{folder_output_core}/{marker}.tiff", core_img[marker_list.index(marker)])
-        logging.info(f'Markers saved for core {core_name}')
 
 def img_scale_marker(img: np.ndarray, marker: str, marker_list: List[str], scale: bool=True) -> np.ndarray:
     img_marker = img[marker_list.index(marker)]
