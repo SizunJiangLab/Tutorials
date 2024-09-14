@@ -1,6 +1,13 @@
+#!/bin/bash
+
+# edit your parameter ^ #####
 path_parameter=/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_test/data_input/20240611_LMS-TMA_Scan1/20240611_LMS-TMA_Scan1_parameter.json
 path_objects=/mnt/nfs/home/wenruiwu/projects/Sarcoma/data_test/data_output/20240611_LMS-TMA_Scan1
 tag=test_20240914
+# edit your parameter & #####
+
+# Activate cellSeg environment 
+source /opt/miniconda3/bin/activate cellSeg
 
 # Crop TMA
 python \
