@@ -70,7 +70,7 @@ def crop_tma(path_parameter):
     marker_list = load_marker_list(config["path_marker"])
     logging.info('Marker lists loaded')
 
-    for _, row in tqdm(pos_df.iterrows()):
+    for _, row in tqdm(pos_df.iterrows(), total=pos_df.shape[0]):
         core_name = row["Name"]
         core_img = qptiff_img[:, row["y_beg_px"]:row["y_end_px"], row["x_beg_px"]:row["x_end_px"]]
         folder_output_core = f'{folder_output_tma}/{core_name}/marker'
