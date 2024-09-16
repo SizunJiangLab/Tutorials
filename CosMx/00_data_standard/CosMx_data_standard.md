@@ -7,16 +7,17 @@
 
 ## 0. Nomenclature
 
-Slide name format: `[project name]_TMA[TMA number]_section[section number]_v[AtoMx version]`
+Slide name format: `[project name]_TMA[TMA number]_section[section number]_[sectioning date]_v[AtoMx version]`
 
 - `project name`:  Project abbreviation or full name.  
 - `TMA number`: TMA number. 
 - `section number`: Two-digit section number, with leading zero if needed (e.g., 01, 02).
+- `sectioning date`: Sectioning date, or cut date (YYYYMMDD, e.g., 20240701). 
 - `AtoMx version`: AtoMx version without periods (e.g., v132 for v1.3.2).
 
 ```sh
 ## create folder for CosMx data
-slide_name=RCC_TMA542_section05_v132
+slide_name=RCC_TMA542_section05_20240701_v132
 mkdir /mnt/nfs/storage/CosMX/$slide_name
 mkdir /mnt/nfs/storage/CosMX/$slide_name/AtoMx
 mkdir /mnt/nfs/storage/CosMX/$slide_name/metadata
@@ -26,7 +27,7 @@ mkdir /mnt/nfs/storage/CosMX/$slide_name/image
 ### File structure
 
 ```
-/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/
+/mnt/nfs/storage/CosMX/RCC_TMA542_section05_20240701_v132/
 ├── AtoMx
 ├── metadata
 └── image
@@ -40,7 +41,7 @@ The files exported from AtoMx SIP.
 ### File structure
 
 ```
-/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/
+/mnt/nfs/storage/CosMX/RCC_TMA542_section05_20240701_v132/
 ├── + AtoMx
 │   ├── flatFiles
 │   ├── RawFiles
@@ -77,10 +78,10 @@ The meta data should contain at least the following information:
 ### File structure
 
 ```
-/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/
+/mnt/nfs/storage/CosMX/RCC_TMA542_section05_20240701_v132/
 ├── AtoMx
 ├── + metadata
-│   └── metadata_RCC_TMA542_section05_v132.csv
+│   └── metadata_RCC_TMA542_section05_20240701_v132.csv
 └── image
 ```
 
@@ -97,27 +98,27 @@ File name format for images: `HE_[slide name].svs` and `CosMx_[slide name].tiff`
 ### File structure
 
 ```
-/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/
+/mnt/nfs/storage/CosMX/RCC_TMA542_section05_20240701_v132/
 ├── AtoMx
 ├── metadata
 └── + image
-    ├── HE_RCC_TMA542_section05_v132.svs
-    └── CosMx_RCC_TMA542_section05_v132.tiff
+    ├── HE_RCC_TMA542_section05_20240701_v132.svs
+    └── CosMx_RCC_TMA542_section05_20240701_v132.tiff
 ```
 
 
 ## Summary
 
 ```
-/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/
+/mnt/nfs/storage/CosMX/RCC_TMA542_section05_20240701_v132/
 ├── AtoMx
 │   ├── flatFiles
 │   ├── RawFiles
 │   ├── seuratObject_*.RDS
 │   └── TileDB
 ├── metadata
-│   └── metadata_RCC_TMA542_section05_v132.csv
+│   └── metadata_RCC_TMA542_section05_20240701_v132.csv
 └── image
-    ├── HE_RCC_TMA542_section05_v132.svs
-    └── CosMx_RCC_TMA542_section05_v132.tiff
+    ├── HE_RCC_TMA542_section05_20240701_v132.svs
+    └── CosMx_RCC_TMA542_section05_20240701_v132.tiff
 ```
