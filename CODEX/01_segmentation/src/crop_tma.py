@@ -1,5 +1,5 @@
 '''
-Date: 2024-09-13
+Date: 2024-09-21
 Author: Huaying Qiu, Wenrui Wu
 '''
 
@@ -58,9 +58,9 @@ def crop_tma(path_parameter):
     config = load_config(path_parameter)
     keys = ["name", "path_qptiff", "path_dearrayer", "path_marker",  "pixel_size_um", "diameter_mm", "folder_output"]
     config = {key: config.get(key) for key in keys}
-    folder_output_tma = f'{config["folder_output"]}/{config["name"]}'
-    os.makedirs(folder_output_tma, exist_ok=True)
-    with open(f'{folder_output_tma}/parameter_crop.json', "w") as file:
+    folder_output = config["folder_output"]
+    os.makedirs(folder_output, exist_ok=True)
+    with open(f'{folder_output}/parameter_crop.json', "w") as file:
         json.dump(config, file, indent=4)
 
     pos_df = load_core_position(config["path_dearrayer"], config["pixel_size_um"], config["diameter_mm"])
@@ -73,7 +73,7 @@ def crop_tma(path_parameter):
     for _, row in tqdm(pos_df.iterrows(), total=pos_df.shape[0]):
         core_name = row["Name"]
         core_img = qptiff_img[:, row["y_beg_px"]:row["y_end_px"], row["x_beg_px"]:row["x_end_px"]]
-        folder_output_core = f'{folder_output_tma}/{core_name}/marker'
+        folder_output_core = f'{folder_output}/{core_name}/marker'
         os.makedirs(folder_output_core, exist_ok=True)
         # Save markers
         for marker in marker_list:
