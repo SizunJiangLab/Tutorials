@@ -1,33 +1,28 @@
 '''
-Date: 2024-09-13
+Date: 2024-09-21
 Author: Huaying Qiu, Wenrui Wu
 '''
-
 
 import json
 from pathlib import Path
 
-
-def get_path_file(folder_input: str) -> dict:
-    """
-    Get paths of all files needed within the input folder. 
-    """
-    name = Path(folder_input).name
-    path_dict = {
-        "name": name, 
-        "path_qptiff": f"{folder_input}/{name}.qptiff", 
-        "path_marker": f"{folder_input}/{name}_MarkerList.txt", 
-        "path_metadata": f"{folder_input}/{name}_metadata.txt", 
-        "path_dearrayer": f"{folder_input}/{name}_dearrayer.txt"
-    }
-    return path_dict
-    
 def load_config(path_parameter: str) -> dict:
     """
     Load all the parameters needed. 
     """
     with open(path_parameter, "r") as f:
         config_dict = json.load(f)
-    get_all_path = config_dict["folder_input"]
-    path_dict = get_path_file(get_all_path)
+    dir_input = config_dict["dir_input"]
+    dir_output = config_dict["dir_output"]
+    name = config_dict["name"]
+    path_dict = {
+        "name": name, 
+        "folder_input": Path(dir_input, name), 
+        "folder_output": Path(dir_output, name), 
+        "path_qptiff": Path(dir_input, name, f"{name}.qptiff"), 
+        "path_marker": Path(dir_input, name, f"{name}_MarkerList.txt"), 
+        "path_metadata": Path(dir_input, name, f"{name}_metadata.csv"), 
+        "path_dearrayer": Path(dir_input, name, f"{name}_dearrayer.txt"), 
+    }
+    path_dict = {key: str(value) for key, value in path_dict.items()}
     return config_dict | path_dict
