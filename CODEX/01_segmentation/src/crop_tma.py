@@ -3,7 +3,6 @@ Date: 2024-09-21
 Author: Huaying Qiu, Wenrui Wu
 '''
 
-
 import tifffile
 import json
 import numpy as np
@@ -15,7 +14,6 @@ import re
 import logging
 from typing import List, Dict
 from src.load_config import load_config
-
 
 def load_core_position(path_dearrayer: str, pixel_size_um: float, diameter_mm: float) -> pd.DataFrame:
     """
@@ -60,8 +58,8 @@ def crop_tma(path_parameter):
     config = {key: config.get(key) for key in keys}
     folder_output = config["folder_output"]
     os.makedirs(folder_output, exist_ok=True)
-    with open(f'{folder_output}/parameter_crop.json', "w") as file:
-        json.dump(config, file, indent=4)
+    with open(f'{folder_output}/parameter_crop.json', "w", encoding="utf-8") as file:
+        json.dump(config, file, indent=4, ensure_ascii=False)
 
     pos_df = load_core_position(config["path_dearrayer"], config["pixel_size_um"], config["diameter_mm"])
     logging.info('Core positions loaded and vertices calculated')
