@@ -126,8 +126,8 @@ def segment_mesmer_object(folder_object: str, path_parameter: str, tag: str):
     config = load_config(path_parameter)
     keys = ["boundary", "internal", "scale", "pixel_size_um",  "maxima_threshold", "interior_threshold"]
     config = {key: config.get(key) for key in keys}    
-    with open(f'{folder_output}/parameter_segmentation.json', "w") as file:
-        json.dump(config, file, indent=4)
+    with open(f'{folder_output}/parameter_segmentation.json', "w", encoding="utf-8") as file:
+        json.dump(config, file, indent=4, ensure_ascii=False)
 
     marker_dict = load_tiff_markers(f'{folder_object}/marker')
     logging.info('tiff loaded for segmentation')

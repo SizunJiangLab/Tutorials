@@ -7,6 +7,8 @@ import sys
 import os 
 import logging
 import tensorflow as tf
+from tqdm import tqdm
+from src.load_config import load_config
 from src.segment_mesmer import segment_mesmer_object
 
 # Configure logging
@@ -25,13 +27,16 @@ except:
 
 # Run Segmentation 
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: python 03_segment_mesmer.py <folder_object>, <path_parameter>, <tag>")
+    if len(sys.argv) != 3:
+        print("Usage: python 03_segment_mesmer_tma.py <path_parameter> <tag>")
         sys.exit(1)
-    folder_object = sys.argv[1]
-    path_parameter = sys.argv[2]
-    tag = sys.argv[3]
-    segment_mesmer_object(folder_object, path_parameter, tag)
+    path_parameter = sys.argv[1]
+    tag = sys.argv[2]
+    
+    config = load_config(path_parameter)
+    folder_objects = [f.path for f in os.scandir(config["folder_output"]) if f.is_dir()]
+    for folder_object in tqdm(folder_objects):
+        segment_mesmer_object(folder_object, path_parameter, tag)
 
 if __name__ == "__main__":
     main()
