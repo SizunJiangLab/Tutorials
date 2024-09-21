@@ -28,7 +28,7 @@ except:
 # Run Segmentation 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python 03_segment_mesmer_tma.py <path_parameter> <tag>")
+        print("Usage: python 03_segment_mesmer.py <path_parameter> <tag>")
         sys.exit(1)
     path_parameter = sys.argv[1]
     tag = sys.argv[2]
