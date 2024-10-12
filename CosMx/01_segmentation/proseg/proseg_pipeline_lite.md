@@ -70,7 +70,7 @@ https://github.com/dcjones/proseg
 # Run in shell #####
 
 # install proseg
-cargo install proseg
+cargo install proseg@1.1.7
 ```
 
 ## 4. `run_proseg.sh`
