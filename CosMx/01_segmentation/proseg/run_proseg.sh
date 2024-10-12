@@ -3,7 +3,7 @@
 # Script to process CosMx data using proseg
 #
 # Usage:
-#   ./run_proseg.sh [dir_cosmx] [dir_output] [--voxel-layers n_layer]
+#   ./run_proseg.sh [dir_cosmx] [dir_output] [--voxel-layers n_layer] [--nthreads n_threads]
 #
 # Arguments:
 #   dir_cosmx       Directory containing CosMx output exported from AtoMx SIP, including
@@ -14,6 +14,7 @@
 #                   reads the $tx_file to find the 'z' column, calculates the unique values
 #                   in that column, and sets the number of voxel layers to match the number
 #                   of unique 'z' values.
+#   --nthreads       (Optional) Set the number of threads to use. Default is 28.
 #
 # Description:
 #   This script processes CosMx transcript data using the proseg tool. It takes in a
@@ -41,16 +42,29 @@ else
     dir_output="$2"
 fi
 
+# Set default number of threads
+n_threads=28
+
 # Parse optional arguments
 n_layer="auto"
-if [ "$3" == "--voxel-layers" ]; then
-    if [ -z "$4" ]; then
-        echo "Error: Please provide a value for --voxel-layers."
-        exit 1
-    else
-        n_layer="$4"
-    fi
-fi
+shift 2
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --voxel-layers)
+            n_layer="$2"
+            shift 2
+            ;;
+        --nthreads)
+            n_threads="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Create the output directory if it doesn't exist
 mkdir -p "$dir_output"
@@ -85,6 +99,7 @@ fi
 # Run proseg with the specified parameters
 echo "Running proseg with the specified parameters..."
 proseg --cosmx \
+    --nthreads $n_threads \
     --x-column x_global_px --y-column y_global_px \
     --output-expected-counts "$dir_output/cell-expected-counts.csv.gz" \
     --output-cell-metadata "$dir_output/cell-metadata.csv.gz" \
