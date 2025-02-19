@@ -60,6 +60,49 @@ COLOR <- c(
 
 # Data Import -------------------------------------------------------------
 
+find_files <- function(path = ".", pattern = NULL, max_depth = 3, current_depth = 0) {
+  # Termination condition: exceed max depth
+  if (current_depth > max_depth) return(character(0))
+  
+  # List items in the current directory
+  all_items <- list.files(
+    path = path,
+    full.names = TRUE,
+    recursive = FALSE,
+    include.dirs = TRUE
+  )
+  
+  # Split into files and subdirectories
+  is_dir <- file.info(all_items)$isdir
+  files <- all_items[!is_dir]
+  dirs <- all_items[is_dir]
+  
+  # Match file pattern (e.g., "*.csv")
+  if (!is.null(pattern)) {
+    files <- files[grepl(pattern, basename(files))]
+  }
+  
+  # Recursively search subdirectories (depth +1)
+  sub_files <- unlist(lapply(dirs, function(dir) {
+    find_files(dir, pattern, max_depth, current_depth + 1)
+  }))
+  
+  # Combine results
+  c(files, sub_files)
+}
+
+# Example: Find all files within 3 subdirectory levels from the current path
+files <- find_files(max_depth = 3)
+print(files)
+
+
+# 示例：查找当前目录下所有文件（最多向下3层）
+files <- find_files(max_depth = 3)
+print(files)
+
+
+
+
 #' Find paths of all CosMx output files for QC
 #'
 #' @param folder_input The path of the CosMx foldler following data standard (AtoMx folder).
@@ -86,7 +129,8 @@ find_all_files <- function(folder_input){
     fovs = "Logs/.*[.]fovs[.]csv$"
   )
   # path for rawfiles
-  rawfiles <- fs::dir_ls(fs::path(folder_input, "RawFiles/"), recurse = TRUE)
+  rawfiles <- find_files(fs::path(folder_input, "RawFiles/"), max_depth = 3)
+  # rawfiles <- fs::dir_ls(fs::path(folder_input, "RawFiles/"), recurse = TRUE)
   rawfile_list <- pattern_rawfile_list %>% 
     purrr::map(~ stringr::str_subset(rawfiles, .x))
   
