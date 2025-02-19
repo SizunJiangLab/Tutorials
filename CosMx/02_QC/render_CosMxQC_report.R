@@ -1,0 +1,1 @@
+rmarkdown::render("CosMxQC_report.Rmd", output_format = 'html_document')
