@@ -41,7 +41,7 @@ knitr::opts_chunk$set(echo = FALSE,message = FALSE, warning = FALSE)
 knitr::opts_chunk$set(fig.width = 8, fig.height = 4, dpi = 120)
 ```
 
-```{r FindFillName}
+```{r FindFileName, include=FALSE}
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -56,11 +56,13 @@ source(here::here("functions.R"))
 # B_input_file = params$parameter2
 
 input_folders <- c(
-  "/mnt/nfs/home/zhenshengzhang/CosMx/AH/AH_TMA1_section02_v132/AtoMx", 
-  "/mnt/nfs/home/zhenshengzhang/CosMx/AH/AH_TMA1_section03_v132_2/AtoMx",
-  '/mnt/nfs/storage/CosMX/RCC_TMA542_section05_v132/AtoMx', 
-  "/mnt/nfs/storage/CosMX/DLBCL_TMA001_section06_v132/AtoMx"
+  '/mnt/nfs/storage/cosmx/cosmx_backup/PCNSL_EBV_TMA001_v132/AtoMx/', 
+  '/mnt/nfs/storage/cosmx/cosmx_backup/PCNSL_EBV_TMA002_v132/AtoMx/', 
+  "/mnt/nfs/storage/cosmx/cosmx_backup/PCNSL_EBV_TMA003_v132/AtoMx/", 
+  '/mnt/nfs/storage/cosmx/cosmx_backup/PCNSL_HIV_TMA004_v132/AtoMx/'
 )
+
+
 list_path_all_files <- purrr::map(input_folders, find_all_files)
 list_combined_data <- map(list_path_all_files, ~ load_all_files(.x), .progress = TRUE)
 
