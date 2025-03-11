@@ -54,7 +54,7 @@ git checkout v1.10.4
 make
 
 # add Julia to your $PATH (only run it at the first time)
-echo export PATH="$PATH:$wd/julia" >> ~/.bashrc
+echo export PATH="\$PATH:$wd/julia" >> ~/.bashrc
 
 # restart your current shell
 
