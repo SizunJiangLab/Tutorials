@@ -47,12 +47,15 @@ library(stringr)
 library(purrr)
 library(sf)
 library(patchwork)
+library(magrittr)
 source(here::here("functions.R"))
 
-input_folders <- c(
-  "/mnt/nfs/storage/cosmx/cosmx_backup/PCa_TMA5521_section6_v132/AtoMx",
-  "/mnt/nfs/storage/cosmx/cosmx_backup/PCa_TMA5531_section6_v132/AtoMx"
-)
+# input_folders <- c(
+#   "/mnt/nfs/storage/cosmx/cosmx_backup/PCa_TMA5521_section6_v132/AtoMx",
+#   "/mnt/nfs/storage/cosmx/cosmx_backup/PCa_TMA5531_section6_v132/AtoMx"
+# )
+input_folders <- fs::dir_ls("/mnt/nfs/storage/cosmx/cosmx_backup/", regexp = "RCC") %>%
+  str_c("/AtoMx")
 
 
 list_path_all_files <- purrr::map(input_folders, find_all_files)
@@ -68,7 +71,6 @@ nchar_fov <- all_fov %>%
   as.character() %>%
   nchar() %>%
   max()
-# list_run_name <- list_combined_data %>% map(~ unique(.x$metadata_sub$Run_Tissue_name))
 list_run_name <- input_folders %>%
   stringr::str_remove("AtoMx") %>%
   fs::path_file()
@@ -120,6 +122,24 @@ for (i in seq_along(list_output)) {
 }
 ```
 
+
+## Unassigned Transcripts  {.tabset .tabset-pills}
+```{r, results='asis'}
+list_output <- list_combined_data %>%
+  map(~ .x %>% plt_unassigned_Fov())
+list_output <- list_output %>%
+  map(
+    ~ .x +
+      scale_x_discrete(labels = ~ .x %>% str_pad(width = nchar_fov, pad = "0"))
+  )
+
+cat("\n\n### ", "Combined\n")
+print(plt_combined(list_output))
+for (i in seq_along(list_output)) {
+  cat("\n\n### ", list_run_name[[i]], "\n")
+  print(list_output[[i]])
+}
+```
 
 ## Unique Transcripts  {.tabset .tabset-pills}
 ```{r, results='asis'}

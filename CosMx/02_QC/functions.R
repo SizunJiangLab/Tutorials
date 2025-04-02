@@ -383,6 +383,23 @@ plt_n_unique_Fov <- function(combined_data, df_backgroupd = df_target_type) {
   return(p)
 }
 
+# Unassigned transcripts percentage per FOV #####
+
+plt_unassigned_Fov <- function(combined_data) {
+  df_unassigned <- combined_data$tx_sub %>%
+    group_by(fov, assignment) %>%
+    summarise(n = n()) %>%
+    group_by(fov) %>%
+    mutate(percent = n / sum(n))
+  p <- df_unassigned %>%
+    ggplot(aes(x = fov, y = percent, fill = assignment)) +
+    geom_col(width = 0.6, position = "fill") +
+    labs(x = "FOV", y = "Percent") +
+    scale_fill_manual(values = c("Assigned" = "#46a549", "Unassigned" = "#E41A1C")) +
+    theme_col_percent()
+  return(p)
+}
+
 
 # Number of unique targets detected per cell per FOV #####
 
