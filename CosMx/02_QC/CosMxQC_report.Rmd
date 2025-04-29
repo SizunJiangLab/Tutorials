@@ -50,17 +50,24 @@ library(patchwork)
 library(magrittr)
 source(here::here("functions.R"))
 
-# input_folders <- c(
-#   "/mnt/nfs/storage/cosmx/cosmx_backup/PCa_TMA5521_section6_v132/AtoMx",
-#   "/mnt/nfs/storage/cosmx/cosmx_backup/PCa_TMA5531_section6_v132/AtoMx"
-# )
-input_folders <- fs::dir_ls("/mnt/nfs/storage/cosmx/cosmx_backup/", regexp = "RCC") %>%
-  str_c("/AtoMx")
-
+storage_folders <- c(
+  "CRC_TMA1_section7_v132",
+  "CRC_TMA3_section9_v132",
+  "CRC_TMA4_section9_v132",
+  "CRCASCOLT_TMA1_section9_v140",
+  "CRCASCOLT_TMA2_section9_v140",
+  "spaceholder"
+)
+storage_folders <- storage_folders[storage_folders != "spaceholder"]
+input_folders <- str_glue("/mnt/nfs/storage/cosmx/cosmx_backup/{storage_folders}/AtoMx")
+for (input_folder in input_folders) {
+  if (!dir.exists(input_folder)) {
+    print("Input folder not exist: ", input_folder)
+  }
+}
 
 list_path_all_files <- purrr::map(input_folders, find_all_files)
 list_combined_data <- map(list_path_all_files, ~ load_all_files(.x), .progress = TRUE)
-
 
 # Parameters
 all_fov <- map(list_combined_data, ~ {
