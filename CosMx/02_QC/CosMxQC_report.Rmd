@@ -45,21 +45,23 @@ library(tidyr)
 library(ggpubr)
 library(stringr)
 library(purrr)
-library(sf)
 library(patchwork)
 library(magrittr)
 source(here::here("functions.R"))
 
-storage_folders <- c(
-  "CRC_TMA1_section7_v132",
-  "CRC_TMA3_section9_v132",
-  "CRC_TMA4_section9_v132",
-  "CRCASCOLT_TMA1_section9_v140",
-  "CRCASCOLT_TMA2_section9_v140",
+folder_names <- c(
+  "Slide_202_Yury_IBD_v200",
+  "Slide_436_Yury_IBD_v200",
+  "Slide_527_Yury_IBD_v200",
+  "Slide_583_202_S2b_S2b_S3b_Yury_IBD_v200",
+  "Slide_583_Nb_Ib_S1b_Yury_IBD_v200",
+  "Slide_610_Yury_IBD_v200",
   "spaceholder"
 )
-storage_folders <- storage_folders[storage_folders != "spaceholder"]
-input_folders <- str_glue("/mnt/nfs/storage/cosmx/cosmx_backup/{storage_folders}/AtoMx")
+folder_names <- folder_names[folder_names != "spaceholder"]
+storage_folders <- fs::path("/mnt/nfs/storage/cosmx/cosmx_backup/", folder_names, "AtoMx")
+
+input_folders <- storage_folders
 for (input_folder in input_folders) {
   if (!dir.exists(input_folder)) {
     print("Input folder not exist: ", input_folder)
