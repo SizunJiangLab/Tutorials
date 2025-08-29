@@ -242,7 +242,8 @@ plt_combined_grid <- function(list_p, list_title = list_run_name) {
   p_combined$data <- purrr::map2(
     list_output,
     list_run_name,
-    ~ .x$data %>% mutate(tag_facet = .y)
+    ~ .x$data %>%
+      mutate(tag_facet = .y, Run_Tissue_name = as.character(Run_Tissue_name))
   ) %>%
     bind_rows() %>%
     mutate(across(tag_facet, ~ factor(.x, levels = list_run_name)))
